@@ -1,0 +1,3 @@
+help @ Show help file
+help <command> @ Help with <command> (You Are Here)
+Learn the commands and how to use them.
