@@ -2,8 +2,7 @@ import argparse
 import pysftp
 import sys
 
-HELP_TAB_SPACING = 10
-TAB_SIZE = 4  # I can't figure out if there's a way to read this value, 'cause I think it varies...
+HELP_COMMAND_SPACING = 35  # Max length(+1) of sample commands in help files
 
 def capturingArguments():
     parser = argparse.ArgumentParser()
@@ -44,11 +43,11 @@ def printHelp(file):
     with open(file) as text:
         for line in iter(lambda: text.readline(), ''):
             parts = line.strip().split('@')
-            spacing = HELP_TAB_SPACING - (len(parts[0].strip()) // TAB_SIZE)
             line_output = ''
-            for part in parts:
-                line_output += (part.strip() + ('\t' * spacing))
-            print(line_output.strip())
+            for part in parts[:2]:
+                line_output += ('{:<' + str(HELP_COMMAND_SPACING) + 's}').format(part)
+            if len(line_output.strip()) > 0:
+                print(line_output)
 
 
 class Commands:
