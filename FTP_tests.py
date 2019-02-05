@@ -2,6 +2,7 @@
 
 import unittest
 from FTP_main import SFTP
+from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
 
 class SFTPTestInfo(dict):
     """This class exists because the SFTP class initializes itself using an object,
@@ -29,8 +30,8 @@ class SFTPTestCase(unittest.TestCase):
     def test_plaintext_auth(self):
         verbose = None
         hostname = 'linuxlab.cs.pdx.edu'
-        username = 'PSU_ID'
-        password = 'PSU_CECS_PASSWORD'
+        username = PSU_ID
+        password = PSU_CECS_PASSWORD
         args = {'verbose': verbose, 'host':hostname, 'username':username, 'password':password}
         self.sftp_client = SFTP(SFTPTestInfo(args))
         self.sftp_client.initiate_connection()
@@ -39,8 +40,8 @@ class SFTPTestCase(unittest.TestCase):
     def test_private_key_auth(self):
         verbose = None
         hostname = 'linuxlab.cs.pdx.edu'
-        username = 'PSU_ID'
-        private_key_password = 'PRIVATE_KEY_PASSWORD'
+        username = PSU_ID
+        private_key_password = PRIVATE_KEY_PASSWORD
         args = {'verbose': verbose, 'host':hostname, 'username':username, 'private_key_password':private_key_password}
         self.sftp_client = SFTP(SFTPTestInfo(args))
         self.sftp_client.initiate_connection()
