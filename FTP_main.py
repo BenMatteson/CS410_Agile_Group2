@@ -9,7 +9,7 @@ HELP_COMMAND_SPACING = 35  # Max length(+1) of sample commands in help files
 
 def main(argv=None):
     sftp = SFTP(argv)
-    sftp.initiateConnection()
+    sftp.initiate_connection()
     if sftp.connection is not None:
         print("Connection Successful!\n"
               "Type a command or 'help' to see available commands")
@@ -19,13 +19,13 @@ def main(argv=None):
     while True:
         try:
             command = input('> ')
-            sftp.executeCommand(command)
+            sftp.execute_command(command)
         except (ValueError, FileNotFoundError) as e:
             print(e)
             continue
 
 
-def capturingArguments():
+def capture_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-H', '--host', help='Input host name', required=True)
     parser.add_argument('-U', '--username', help='input username', required=True)
@@ -42,17 +42,20 @@ class SFTP(object):
         self.password = self.args['password']
         self.connection = None
 
-    def initiateConnection(self):
+    def initiate_connection(self):
         """Does initialize connection using  host name, user name & password"""
         try:
             cnopts = pysftp.CnOpts()
             cnopts.hostkeys = None  # allows connection to any host
-            self.connection = pysftp.Connection(host=self.hostName, username=self.userName, password=self.password, cnopts=cnopts)
+            self.connection = pysftp.Connection(host=self.hostName,
+                                                username=self.userName,
+                                                password=self.password,
+                                                cnopts=cnopts)
         except Exception as e:
             print(str(e))
 
     # region Commands Section
-    def executeCommand(self, cmd):
+    def execute_command(self, cmd):
         """Find and execute the command in Commands class"""
         parts = cmd.split(' ')
         try:
@@ -60,16 +63,18 @@ class SFTP(object):
         except AttributeError as e:
             raise ValueError("Command not found, try 'help'") from e
 
-    def quit(self, _args):
+    @staticmethod
+    def quit(_args):
         """quit the client"""
         quit(0)
 
-    def help(self, args):
+    @staticmethod
+    def help(args):
         """Show command list, or help file for requested command"""
         if len(args) is 0:
-            printHelp("command_list.txt")
+            print_help("command_list.txt")
         else:
-            printHelp(args[0] + "_help.txt")
+            print_help(args[0] + "_help.txt")
     # endregion
 
     def __del__(self):
@@ -80,7 +85,7 @@ class SFTP(object):
                 pass
 
 
-def printHelp(file):
+def print_help(file):
     """Prints help files with consistent formatting"""
     try:
         with open(file) as text:
@@ -98,4 +103,4 @@ def printHelp(file):
 if __name__ == '__main__':
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
-        main(capturingArguments())
+        main(capture_arguments())
