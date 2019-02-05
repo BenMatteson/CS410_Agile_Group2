@@ -1,0 +1,2 @@
+quit @ Quits the program
+Closes connection and quits the program.
