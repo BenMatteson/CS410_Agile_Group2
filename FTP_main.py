@@ -67,7 +67,6 @@ class SFTP(object):
         # configure pysftp CnOpts to use the known_hosts file that was found at the path above
         self.cnopts = pysftp.CnOpts()
         if hasattr(self, 'known_hosts'):
-            print("Loading known_hosts")
             self.cnopts.hostkeys.load(self.known_hosts)
         self.connection = None
 
