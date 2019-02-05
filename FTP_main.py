@@ -34,20 +34,23 @@ class Sftp(object):
         if self.connection is not None:
             try:
                 self.connection.close()
-            except:
+            except Exception:
                 pass
 
 
 def printHelp(file):
     """Prints help files with consistent formatting"""
-    with open(file) as text:
-        for line in iter(lambda: text.readline(), ''):
-            parts = line.strip().split('@')
-            line_output = ''
-            for part in parts[:2]:
-                line_output += ('{:<' + str(HELP_COMMAND_SPACING) + 's}').format(part)
-            if len(line_output.strip()) > 0:
-                print(line_output)
+    try:
+        with open(file) as text:
+            for line in iter(lambda: text.readline(), ''):
+                parts = line.strip().split('@')
+                line_output = ''
+                for part in parts[:2]:
+                    line_output += ('{:<' + str(HELP_COMMAND_SPACING) + 's}').format(part)
+                if len(line_output.strip()) > 0:
+                    print(line_output)
+    except FileNotFoundError as e:
+        raise FileNotFoundError("Missing help file") from e
 
 
 class Commands:
@@ -62,8 +65,8 @@ class Commands:
         parts = cmd.split(' ')
         try:
             return getattr(Commands, parts[0])(parts[1:], connection)
-        except AttributeError:
-            raise ValueError()
+        except AttributeError as e:
+            raise ValueError("Command not found, try 'help'") from e
 
     @staticmethod
     def quit(_args, _connection):
@@ -93,6 +96,6 @@ if __name__ == '__main__':
         try:
             command = input('> ')
             Commands.executeCommand(command, sftp)
-        except ValueError:
-            print("Command not found, try 'help'")
+        except (ValueError, FileNotFoundError) as e:
+            print(e)
             continue
