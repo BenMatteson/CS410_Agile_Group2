@@ -1,4 +1,6 @@
 import argparse
+import warnings
+
 import pysftp
 import sys
 
@@ -6,7 +8,7 @@ HELP_COMMAND_SPACING = 35  # Max length(+1) of sample commands in help files
 
 
 def main(argv=None):
-    sftp = Sftp(argv)
+    sftp = SFTP(argv)
     sftp.initiateConnection()
     if sftp.connection is not None:
         print("Connection Successful!\n"
@@ -32,7 +34,7 @@ def capturingArguments():
     return arguments
 
 
-class Sftp(object):
+class SFTP(object):
     def __init__(self, args):
         self.args = vars(args)
         self.hostName = self.args['host']
@@ -94,4 +96,6 @@ def printHelp(file):
 
 
 if __name__ == '__main__':
-    main(capturingArguments())
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        main(capturingArguments())
