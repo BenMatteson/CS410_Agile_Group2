@@ -4,6 +4,25 @@ import sys
 
 HELP_COMMAND_SPACING = 35  # Max length(+1) of sample commands in help files
 
+
+def main(argv=None):
+    sftp = Sftp(argv)
+    sftp.initiateConnection()
+    if sftp.connection is not None:
+        print("Connection Successful!\n"
+              "Type a command or 'help' to see available commands")
+    else:
+        print("Unable to connect, please check your connection information")
+        quit(1)
+    while True:
+        try:
+            command = input('> ')
+            sftp.executeCommand(command)
+        except (ValueError, FileNotFoundError) as e:
+            print(e)
+            continue
+
+
 def capturingArguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-H', '--host', help='Input host name', required=True)
@@ -30,6 +49,27 @@ class Sftp(object):
         except Exception as e:
             print(str(e))
 
+    # region Commands Section
+    def executeCommand(self, cmd):
+        """Find and execute the command in Commands class"""
+        parts = cmd.split(' ')
+        try:
+            return getattr(self, parts[0])(parts[1:])
+        except AttributeError as e:
+            raise ValueError("Command not found, try 'help'") from e
+
+    def quit(self, _args):
+        """quit the client"""
+        quit(0)
+
+    def help(self, args):
+        """Show command list, or help file for requested command"""
+        if len(args) is 0:
+            printHelp("command_list.txt")
+        else:
+            printHelp(args[0] + "_help.txt")
+    # endregion
+
     def __del__(self):
         if self.connection is not None:
             try:
@@ -53,49 +93,5 @@ def printHelp(file):
         raise FileNotFoundError("Missing help file") from e
 
 
-class Commands:
-    """
-    Collection of commands that can be executed.
-    All commands should have the same argument list, though any number may be unused.
-    """
-
-    @staticmethod
-    def executeCommand(cmd, connection):
-        """Find and execute the command in Commands class"""
-        parts = cmd.split(' ')
-        try:
-            return getattr(Commands, parts[0])(parts[1:], connection)
-        except AttributeError as e:
-            raise ValueError("Command not found, try 'help'") from e
-
-    @staticmethod
-    def quit(_args, _connection):
-        """quit the client"""
-        quit(0)
-
-    @staticmethod
-    def help(args, _connection):
-        """Show command list, or help file for requested command"""
-        if len(args) is 0:
-            printHelp("command_list.txt")
-        else:
-            printHelp(args[0] + "_help.txt")
-
-
 if __name__ == '__main__':
-    arguments = capturingArguments()
-    sftp = Sftp(arguments)
-    sftp.initiateConnection()
-    if sftp.connection is not None:
-        print("Connection Successful!\n"
-              "Type a command or 'help' to see available commands")
-    else:
-        print("Unable to connect, please check your connection information")
-        quit(1)
-    while True:
-        try:
-            command = input('> ')
-            Commands.executeCommand(command, sftp)
-        except (ValueError, FileNotFoundError) as e:
-            print(e)
-            continue
+    main(capturingArguments())
