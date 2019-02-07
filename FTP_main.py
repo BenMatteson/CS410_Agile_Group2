@@ -163,7 +163,7 @@ class SFTP(object):
     # endregion
 
     def __del__(self):
-        if hasattr(self, 'connection') and self.connection is not None:
+        if self.connection is not None:
             try:
                 self.connection.close()
             except Exception:
