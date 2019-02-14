@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import unittest
-from FTP_main import SFTP
+from unittest import main
+from SFTPClient.Client import SFTP
 from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
+
 
 class SFTPTestInfo(dict):
     """This class exists because the SFTP class initializes itself using an object,
@@ -12,6 +14,7 @@ class SFTPTestInfo(dict):
     """
     def __init__(self, dict):
         self.__dict__.update(dict)
+
 
 class SFTPTestCase(unittest.TestCase):
     """SFTPTestCase class provides a unittest class used for testing the SFTP class
@@ -24,7 +27,7 @@ class SFTPTestCase(unittest.TestCase):
         pass
     
     def tearDown(self):
-        #self.sftp_client.dispose() # this was in the documentation, not sure where it comes from - maybe an example custom class method?
+        self.sftp_client.dispose()
         self.sftp_client = None
 
     def test_plaintext_auth(self):
@@ -53,3 +56,7 @@ def suite():
     suite.addTest(SFTPTestCase('test_plaintext_auth'))
     suite.addTest(SFTPTestCase('test_private_key_auth'))
     return suite
+
+
+if __name__ == '__main__':
+    main()
