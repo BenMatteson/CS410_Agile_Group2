@@ -1,5 +1,6 @@
 import logging
 
+import paramiko
 import pysftp
 from os.path import expanduser, isfile
 from paramiko import ssh_exception
@@ -65,7 +66,11 @@ def initiate_connection(hostname, username, password=None, private_key_password=
 
     # connect using the authentication type determined above
     logging.debug('Connecting using arguments: ' + str(args))
-    connection = pysftp.Connection(**args)
+    try:
+        connection = pysftp.Connection(**args)
+    except paramiko.SSHException as e:
+        logging.critical(e)
+        raise
 
     # On first connect, Save the new hostkey to known_hosts
     if hostkeys is not None:

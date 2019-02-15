@@ -3,10 +3,16 @@ import argparse
 import logging
 import warnings
 
+import paramiko
+
 from SFTPClient import Client
 
 HELP_COMMAND_SPACING = 35  # Max length(+1) of sample commands in help files
 HELP_FILE_LOCATION = "help_files/"
+
+
+class ExitRequested(Exception):
+    pass
 
 
 def main():
@@ -27,16 +33,31 @@ def main():
         # the user supplied private key password input
         private_key_password = args['private_key_password']
 
-    cli = SFTPCLI(host_name, user_name, password, private_key_password)
+    try:
+        cli = SFTPCLI(host_name, user_name, password, private_key_password)
+    except paramiko.SSHException:
+        print("Unable to connect, please check user and server info.")
+        exit(1)
 
-    while True:
+
+    prompt = True
+    while prompt:
         try:
             command = input('> ')
-            # TODO improve this to look better than print, but it works for now
-            print(cli.execute_command(command))
+            # execute command, handle result accordingly.
+            result = cli.execute_command(command)
+            if isinstance(result, list):
+                # TODO pretty print lists
+                print(result)
+            elif isinstance(result, str):
+                print(str)
         except (ValueError, FileNotFoundError) as e:
             print(e)
             continue
+        except ExitRequested:
+            prompt = False
+            cli = None
+    exit(0)
 
 
 def capture_arguments():
@@ -94,7 +115,7 @@ class SFTPCLI(object):
 
     @staticmethod
     def quit(_args):
-        quit(0)
+        raise ExitRequested()
 
 
 if __name__ == '__main__':
