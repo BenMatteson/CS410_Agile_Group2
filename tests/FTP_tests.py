@@ -4,10 +4,12 @@ import sys
 from os import path
 import unittest
 from unittest import main
-from SFTPClient.Client import SFTP
-from tests.FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
+
 # fix for running as script?
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+from SFTPClient.Client import SFTP
+from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
+
 
 
 class SFTPTestCase(unittest.TestCase):
