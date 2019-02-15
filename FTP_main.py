@@ -50,7 +50,7 @@ def main():
                 # TODO pretty print lists
                 print(result)
             elif isinstance(result, str):
-                print(str)
+                print(result)
         except (ValueError, FileNotFoundError) as e:
             print(e)
             continue
