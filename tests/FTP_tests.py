@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
 
+import sys
+from os import path
 import unittest
 from unittest import main
 from SFTPClient.Client import SFTP
-from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
-
-
-class SFTPTestInfo(dict):
-    """This class exists because the SFTP class initializes itself using an object,
-        and that object needs to respond to calls to the __dict__() method because it's passed to vars()
-        
-        There is probably an easier way to do this?
-    """
-    def __init__(self, dict):
-        self.__dict__.update(dict)
+from tests.FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
+# fix for running as script?
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
 
 class SFTPTestCase(unittest.TestCase):
@@ -27,7 +21,7 @@ class SFTPTestCase(unittest.TestCase):
         pass
     
     def tearDown(self):
-        self.sftp_client.dispose()
+        # self.sftp_client.dispose() # this was in the documentation, not sure where it comes from - maybe an example custom class method?
         self.sftp_client = None
 
     def test_plaintext_auth(self):
@@ -35,9 +29,8 @@ class SFTPTestCase(unittest.TestCase):
         hostname = 'linuxlab.cs.pdx.edu'
         username = PSU_ID
         password = PSU_CECS_PASSWORD
-        args = {'verbose': verbose, 'host':hostname, 'username':username, 'password':password}
-        self.sftp_client = SFTP(SFTPTestInfo(args))
-        self.sftp_client.initiate_connection()
+        args = {'hostname':hostname, 'username':username, 'password':password}
+        self.sftp_client = SFTP(**args)
         self.assertTrue(self.sftp_client.is_connected())
 
     def test_private_key_auth(self):
@@ -45,10 +38,9 @@ class SFTPTestCase(unittest.TestCase):
         hostname = 'linuxlab.cs.pdx.edu'
         username = PSU_ID
         private_key_password = PRIVATE_KEY_PASSWORD
-        args = {'verbose': verbose, 'host':hostname, 'username':username, 'private_key_password':private_key_password}
-        self.sftp_client = SFTP(SFTPTestInfo(args))
-        self.sftp_client.initiate_connection()
-        
+        args = {'hostname':hostname, 'username':username, 'private_key_password':private_key_password}
+        self.sftp_client = SFTP(**args)
+
         self.assertTrue(self.sftp_client.is_connected())
 
 def suite():
