@@ -77,6 +77,7 @@ class SFTPTestCase(unittest.TestCase):
         # TODO: this test should be run after creating 'self.test_dir_name' using the 'mkdir' command
         #   That way, we'd be guaranteed to have the directory exist prior to running.
         #   In the interim, you will need to create this directory manually to allow the test to pass.
+        result = None
         result = self.sftp_client.ls([])
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
@@ -90,6 +91,7 @@ class SFTPTestCase(unittest.TestCase):
         # TODO: this test should be run after creating 'self.test_dir_name' using the 'mkdir' command
         #   That way, we'd be guaranteed to have the directory exist prior to running
         #   In the interim, you will need to create this directory manually to allow the test to pass.
+        result = None
         result = self.sftp_client.ls([self.test_dir_name])
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
