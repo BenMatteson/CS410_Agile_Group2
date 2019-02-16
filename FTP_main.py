@@ -1,31 +1,62 @@
 #!/usr/bin/env python3
 import argparse
+import logging
 import warnings
 
-import pysftp
-import sys
-from os.path import expanduser,isfile
-from paramiko import ssh_exception
+import paramiko
+
+from SFTPClient import Client
 
 HELP_COMMAND_SPACING = 35  # Max length(+1) of sample commands in help files
+HELP_FILE_LOCATION = "help_files/"
 
 
-def main(argv=None):
-    sftp = SFTP(argv)
-    sftp.initiate_connection()
-    if sftp.connection is not None:
-        print("Connection Successful!\n"
-              "Type a command or 'help' to see available commands")
-    else:
-        print("Unable to connect, please check your connection information")
-        quit(1)
-    while True:
+class ExitRequested(Exception):
+    pass
+
+
+def main():
+    args = vars(capture_arguments())
+
+    if args['verbose']:
+        logging.basicConfig(level=logging.DEBUG)
+    host_name = args['host']
+    user_name = args['username']
+
+    password = None
+    if 'password' in args and args['password'] is not None:
+        # the user supplied password input
+        password = args['password']
+
+    private_key_password = None
+    if 'private_key_password' in args and args['private_key_password'] is not None:
+        # the user supplied private key password input
+        private_key_password = args['private_key_password']
+
+    try:
+        cli = SFTPCLI(host_name, user_name, password, private_key_password)
+    except paramiko.SSHException:
+        print("Unable to connect, please check user and server info.")
+        return 1
+
+    prompt = True
+    while prompt:
         try:
             command = input('> ')
-            sftp.execute_command(command)
+            # execute command, handle result accordingly.
+            result = cli.execute_command(command)
+            if isinstance(result, list):
+                # TODO pretty print lists
+                print(result)
+            elif isinstance(result, str):
+                print(result)
         except (ValueError, FileNotFoundError) as e:
             print(e)
             continue
+        except ExitRequested:
+            prompt = False
+            cli = None
+    return 0
 
 
 def capture_arguments():
@@ -40,152 +71,53 @@ def capture_arguments():
     return arguments
 
 
-class SFTP(object):
-    def __init__(self, args):
-        self.args = vars(args)
-        self.verbose = self.args['verbose']
-        self.hostName = self.args['host']
-        self.userName = self.args['username']
-        if 'password' in self.args and self.args['password'] is not None:
-            # the user supplied password input
-            self.password = self.args['password']
-        if 'private_key_password' in self.args and self.args['private_key_password'] is not None:
-            # the user supplied private key password input
-            self.private_key_password = self.args['private_key_password']
-        known_hosts = expanduser('~') + '/.ssh/known_hosts'
-        if isfile(known_hosts):
-            if self.verbose:
-                print('Got known_hosts: ' + known_hosts)
-            # the file at ~/.ssh/known_hosts exists - use it as the (default) known_hosts file
-            self.known_hosts = known_hosts
-        ssh_key = expanduser('~') + '/.ssh/id_rsa'
-        if isfile(ssh_key):
-            if self.verbose:
-                print('Got SSH key: ' + ssh_key)
-            # the file at ~/.ssh/id_rsa exists - use it as the (default) private key
-            self.private_key = ssh_key
-        # configure pysftp CnOpts to use the known_hosts file that was found at the path above
-        self.cnopts = pysftp.CnOpts()
-        if hasattr(self, 'known_hosts'):
-            self.cnopts.hostkeys.load(self.known_hosts)
-        self.connection = None
+class SFTPCLI(object):
+    def __init__(self, hostname, username, password=None, private_key_password=None):
+        self.sftp = Client.SFTP(hostname, username, password, private_key_password)
+        print("Connection Successful!\n"
+              "Type a command or 'help' to see available commands")
 
-    def initiate_connection(self):
-        """Does initialize connection using  host name, user name & password
-        
-        This method will attempt to determine whenther it should be using one of the
-        following authentication methods (in the order provided):
-        
-        DER-encoded private_key
-        private_key
-        plaintext
-        
-        If a supported authentication method cannot be determined, the connection will
-        not be initiated.
-        """
-        try:
-            # Check to see if this hostkey exists in known_hosts, and if not:
-            # - set cnopts.hostkeys to None (to allow the new host connection);
-            # - get the hostkey after connecting;
-            # - update known_hosts with the new value.
-            # Based off of this stackoverflow question:
-            #     https://stackoverflow.com/questions/53666106/use-paramiko-autoaddpolicy-with-pysftp
-            hostkeys = None
-            if self.cnopts.hostkeys.lookup(self.hostName) is None:
-                if self.verbose:
-                    print('Key for host: ' + self.hostName + ' was not found in known_hosts')
-                hostkeys = self.cnopts.hostkeys
-                self.cnopts.hostkeys = None
-
-            args = {'host':self.hostName,
-                    'username':self.userName,
-                    'cnopts':self.cnopts}
-
-            # Determine what type of authentication to use
-            if hasattr(self, 'private_key') and hasattr(self, 'private_key_password'):
-                if self.verbose:
-                    print('Using public key authentication with DER-encoded private key')
-                args['private_key'] = self.private_key
-                args['private_key_pass'] = self.private_key_password
-            elif hasattr(self, 'private_key') and not hasattr(self, 'password'):
-                if self.verbose:
-                    print('Using public key authentication with plaintext private key')
-                args['private_key'] = self.private_key
-            elif hasattr(self, 'password'):
-                if self.verbose:
-                    print('Using plaintext authentication')
-                args['password'] = self.password
-            else:
-                raise ssh_exception.BadAuthenticationType('No supported authentication methods available', ['password', 'public_key'])
-
-            # connect using the authentication type determined above
-            if self.verbose:
-                print('Connecting using arguments: ' + str(args))
-            self.connection = pysftp.Connection(**args)
-
-            # Save the new hostkey to known_hosts
-            if hostkeys is not None:
-                if self.verbose:
-                    print('Appending new hostkey for ' + self.hostName + ' to known_hosts, and writing to disk...')
-                hostkeys.add(self.hostName, self.connection.remote_server_key.get_name(), self.connection.remote_server_key)
-                hostkeys.save(pysftp.helpers.known_hosts())
-        except Exception as e:
-            print(str(e))
-
-    def is_connected(self):
-        """Check the connection (using the listdir() method) to confirm that it's active."""
-        if hasattr(self, 'connection'):
-            if self.connection.listdir():
-                return True
-        return None
-
-    # region Commands Section
     def execute_command(self, cmd):
-        """Find and execute the command in Commands class"""
+        """Find and execute the command"""
+        cli_commands = {'help', 'quit'}
         parts = cmd.split(' ')
-        try:
+        if cli_commands.__contains__(parts[0]):
             return getattr(self, parts[0])(parts[1:])
-        except AttributeError as e:
-            raise ValueError("Command not found, try 'help'") from e
+        else:
+            try:
+                temp = getattr(self.sftp, parts[0])(parts[1:])
+                return temp
+            except AttributeError as e:
+                raise ValueError("Command not found, try 'help'") from e
+
+    def help(self, args):
+        """Show command list, or help file for requested command"""
+        if len(args) is 0:
+            self.print_help(HELP_FILE_LOCATION + "command_list.txt")
+        else:
+            self.print_help(HELP_FILE_LOCATION + args[0] + "_help.txt")
+
+    @staticmethod
+    def print_help(file):
+        """Prints help files with consistent formatting"""
+        try:
+            with open(file) as text:
+                for line in iter(lambda: text.readline(), ''):
+                    parts = line.strip().split('@')
+                    line_output = ''
+                    for part in parts[:2]:
+                        line_output += ('{:<' + str(HELP_COMMAND_SPACING) + 's}').format(part)
+                    if len(line_output.strip()) > 0:
+                        print(line_output)
+        except FileNotFoundError as e:
+            raise FileNotFoundError("Missing help file") from e
 
     @staticmethod
     def quit(_args):
-        """quit the client"""
-        quit(0)
-
-    @staticmethod
-    def help(args):
-        """Show command list, or help file for requested command"""
-        if len(args) is 0:
-            print_help("command_list.txt")
-        else:
-            print_help(args[0] + "_help.txt")
-    # endregion
-
-    def __del__(self):
-        if self.connection is not None:
-            try:
-                self.connection.close()
-            except Exception:
-                pass
-
-
-def print_help(file):
-    """Prints help files with consistent formatting"""
-    try:
-        with open(file) as text:
-            for line in iter(lambda: text.readline(), ''):
-                parts = line.strip().split('@')
-                line_output = ''
-                for part in parts[:2]:
-                    line_output += ('{:<' + str(HELP_COMMAND_SPACING) + 's}').format(part)
-                if len(line_output.strip()) > 0:
-                    print(line_output)
-    except FileNotFoundError as e:
-        raise FileNotFoundError("Missing help file") from e
+        raise ExitRequested()
 
 
 if __name__ == '__main__':
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
-        main(capture_arguments())
+        exit(main())
