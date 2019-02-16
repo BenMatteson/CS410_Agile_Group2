@@ -20,6 +20,15 @@ class SFTP(object):
     def ping(self, _args):
         if self.connection.listdir():
             return 'pong'
+
+    def ls(self, args):
+        """List directory contents on the remote server"""
+        results = None
+        if len(args) is 0:
+            results = self.connection.listdir()
+        elif len(args) is 1:
+            results = self.connection.listdir(args[0])
+        return results
     # endregion
 
     def __del__(self):

@@ -1,5 +1,3 @@
-help @ Show help file (You Are Here)
-help <command> @ Help with <command>
 ls @ List the contents of the current working directory on the remote server
 ls <path> @ List the contents of the requested directory on the remote server
-quit @ Quits the program
+List directories on the remote server.
