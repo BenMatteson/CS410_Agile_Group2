@@ -37,8 +37,7 @@ def main():
         cli = SFTPCLI(host_name, user_name, password, private_key_password)
     except paramiko.SSHException:
         print("Unable to connect, please check user and server info.")
-        exit(1)
-
+        return 1
 
     prompt = True
     while prompt:
@@ -57,7 +56,7 @@ def main():
         except ExitRequested:
             prompt = False
             cli = None
-    exit(0)
+    return 0
 
 
 def capture_arguments():
@@ -121,4 +120,4 @@ class SFTPCLI(object):
 if __name__ == '__main__':
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
-        main()
+        exit(main())
