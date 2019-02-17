@@ -97,6 +97,8 @@ class SFTPTestCase(unittest.TestCase):
         self.assertIsInstance(result, list)
         self.assertTrue(len(result) is 0)
         
+        result = None
+        
         # Test list command with 1 argument (a file that is known to exist) to:
         #  confirm that the test will fail with an exception when listing a file
         #
@@ -105,26 +107,20 @@ class SFTPTestCase(unittest.TestCase):
         # That way, we'd be guaranteed to have the file exist without prior intervention,
         #   and this would also allow for the delete test to be used to cleanup
         #   In the interim, you will need to create this file manually to allow the test to pass.
-        result = None
-        try:
+        with self.assertRaises(FileNotFoundError):
             result = self.sftp_client.ls([self.test_file_name])
-        except FileNotFoundError:
-            self.assertIsNone(result)
 
         # Test list command with 1 argument (a directory that doesn't exist) to:
         #  confirm that the test will fail with an exception when listing non-existent directories
-        result = None
-        try:
+        with self.assertRaises(FileNotFoundError):
             result = self.sftp_client.ls(['0xdeadbeef'])
-        except FileNotFoundError:
-            self.assertIsNone(result)
         
         # Test list command with incorrect number of arguments (> 2) to:
         #   confirm that the result is None
-        try:
+        with self.assertRaises(TypeError):
             result = self.sftp_client.ls(['0xdeadbeef', '0xdeadbeef', '0xdeadbeef'])
-        except TypeError:
-            self.assertIsNone(result)
+            
+        self.assertIsNone(result)
 
     def test_chmod_command(self):
         """Test the 'chmod' command"""
@@ -134,24 +130,18 @@ class SFTPTestCase(unittest.TestCase):
 
         # Test the chmod command with zero arguments to:
         #  confirm that the test will fail with a TypeError exception
-        try:
+        with self.assertRaises(TypeError):
             result = self.sftp_client.chmod([])
-        except TypeError:
-            self.assertIsNone(result)
 
         # Test the chmod command with more than two arguments to:
         #  confirm that the test will fail with a TypeError exception
-        try:
+        with self.assertRaises(TypeError):
             result = self.sftp_client.chmod(['0xdeadbeef', '0xdeadbeef', '0xdeadbeef'])
-        except TypeError:
-            self.assertIsNone(result)
 
         # Test the chmod command with an invalid remotepath to:
         #  confirm that the test will fail with an IOError exception
-        try:
+        with self.assertRaises(IOError):
             result = self.sftp_client.chmod(['0xdeadbeef', 777])
-        except IOError:
-            self.assertIsNone(result)
 
         # Test the chmod command with an invalid mode to:
         #  confirm that the test will fail with a ValueError exception
@@ -159,10 +149,8 @@ class SFTPTestCase(unittest.TestCase):
         # TODO: this test should be run after creating 'self.test_dir_name' using the 'mkdir' command
         #   That way, we'd be guaranteed to have the directory exist prior to running
         #   In the interim, you will need to create this directory manually to allow the test to pass.
-        try:
+        with self.assertRaises(ValueError):
             result = self.sftp_client.chmod([self.test_dir_name, '0xdeadbeef'])
-        except ValueError:
-            self.assertIsNone(result)
 
         # Test the chmod command with a valid mode of 000:
         #  confirm that the test will complete without exception;
@@ -175,10 +163,8 @@ class SFTPTestCase(unittest.TestCase):
         self.assertIsNone(result)
 
         # after changing the mode to 000, confirm that the directory is not listable
-        try:
+        with self.assertRaises(PermissionError):
             result = self.sftp_client.ls([self.test_dir_name])
-        except PermissionError:
-            self.assertIsNone(result)
 
         # Test the chmod command with a valid mode of 755:
         #  confirm that the test will complete without exception;
