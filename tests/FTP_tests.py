@@ -121,8 +121,41 @@ class SFTPTestCase(unittest.TestCase):
         
         # Test list command with incorrect number of arguments (> 2) to:
         #   confirm that the result is None
-        result = self.sftp_client.ls(['0xdeadbeef', '0xdeadbeef', '0xdeadbeef'])
-        self.assertIsNone(result)
+        try:
+            result = self.sftp_client.ls(['0xdeadbeef', '0xdeadbeef', '0xdeadbeef'])
+        except TypeError:
+            self.assertIsNone(result)
+
+    def test_chmod_command(self):
+        """Test the 'chmod' command"""
+        # perform a sanity check to confirm that the sftp_client member is initialized and connected
+        self.assertTrue(self.sftp_client.is_connected())
+        result = None
+
+        # Test the chmod command with zero arguments to:
+        #  confirm that the test will fail with a TypeError exception
+        try:
+            result = self.sftp_client.chmod([])
+        except TypeError:
+            self.assertIsNone(result)
+
+        # Test the chmod command with more than two arguments to:
+        #  confirm that the test will fail with a TypeError exception
+        #
+        # TODO: this test should be run after creating 'self.test_dir_name' using the 'mkdir' command
+        #   That way, we'd be guaranteed to have the directory exist prior to running
+        #   In the interim, you will need to create this directory manually to allow the test to pass.
+        try:
+            result = self.sftp_client.chmod([self.test_dir_name, 777, '0xdeadbeef'])
+        except TypeError:
+            self.assertIsNone(result)
+
+        # Test the chmod command with an invalid path to:
+        #  confirm that the test will fail with an IOError exception
+        try:
+            result = self.sftp_client.chmod(['0xdeadbeef', 777])
+        except IOError:
+            self.assertIsNone(result)
 
 
 def suite():
@@ -130,6 +163,7 @@ def suite():
     suite.addTest(SFTPTestCase('test_plaintext_auth'))
     suite.addTest(SFTPTestCase('test_public_key_auth'))
     suite.addTest(SFTPTestCase('test_list_command'))
+    suite.addTest(SFTPTestCase('test_chmod_command'))
     return suite
 
 

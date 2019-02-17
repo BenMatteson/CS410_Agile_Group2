@@ -50,7 +50,7 @@ def main():
                     print(item)
             elif isinstance(result, str):
                 print(result)
-        except (ValueError, FileNotFoundError) as e:
+        except (ValueError, FileNotFoundError, TypeError, PermissionError) as e:
             print(e)
             continue
         except ExitRequested:

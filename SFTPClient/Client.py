@@ -28,7 +28,21 @@ class SFTP(object):
             results = self.connection.listdir()
         elif len(args) is 1:
             results = self.connection.listdir(args[0])
+        else:
+            raise TypeError('ls() takes exactly zero or one arguments (' + str(len(args)) + ' given)')
         return results
+    
+    def chmod(self, args):
+        """Change or modify permissions of directories and files on the remote server
+        
+            Set the mode of a remotepath to mode, where mode is an integer representation
+            of the octal mode to use.
+        """
+        if len(args) is 2:
+            self.connection.chmod(args[0], int(args[1]))
+        else:
+            raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
+        
     # endregion
 
     def __del__(self):
