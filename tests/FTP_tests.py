@@ -141,21 +141,60 @@ class SFTPTestCase(unittest.TestCase):
 
         # Test the chmod command with more than two arguments to:
         #  confirm that the test will fail with a TypeError exception
-        #
-        # TODO: this test should be run after creating 'self.test_dir_name' using the 'mkdir' command
-        #   That way, we'd be guaranteed to have the directory exist prior to running
-        #   In the interim, you will need to create this directory manually to allow the test to pass.
         try:
-            result = self.sftp_client.chmod([self.test_dir_name, 777, '0xdeadbeef'])
+            result = self.sftp_client.chmod(['0xdeadbeef', '0xdeadbeef', '0xdeadbeef'])
         except TypeError:
             self.assertIsNone(result)
 
-        # Test the chmod command with an invalid path to:
+        # Test the chmod command with an invalid remotepath to:
         #  confirm that the test will fail with an IOError exception
         try:
             result = self.sftp_client.chmod(['0xdeadbeef', 777])
         except IOError:
             self.assertIsNone(result)
+
+        # Test the chmod command with an invalid mode to:
+        #  confirm that the test will fail with a ValueError exception
+        #
+        # TODO: this test should be run after creating 'self.test_dir_name' using the 'mkdir' command
+        #   That way, we'd be guaranteed to have the directory exist prior to running
+        #   In the interim, you will need to create this directory manually to allow the test to pass.
+        try:
+            result = self.sftp_client.chmod([self.test_dir_name, '0xdeadbeef'])
+        except ValueError:
+            self.assertIsNone(result)
+
+        # Test the chmod command with a valid mode of 000:
+        #  confirm that the test will complete without exception;
+        #  confirm that an 'ls' of the directory will fail with a PermissionError exception
+        #
+        # TODO: this test should be run after creating 'self.test_dir_name' using the 'mkdir' command
+        #   That way, we'd be guaranteed to have the directory exist prior to running
+        #   In the interim, you will need to create this directory manually to allow the test to pass.
+        result = self.sftp_client.chmod([self.test_dir_name, 000])
+        self.assertIsNone(result)
+
+        # after changing the mode to 000, confirm that the directory is not listable
+        try:
+            result = self.sftp_client.ls([self.test_dir_name])
+        except PermissionError:
+            self.assertIsNone(result)
+
+        # Test the chmod command with a valid mode of 755:
+        #  confirm that the test will complete without exception;
+        #  confirm that an 'ls' of the directory return (empty) results
+        #
+        # TODO: this test should be run after creating 'self.test_dir_name' using the 'mkdir' command
+        #   That way, we'd be guaranteed to have the directory exist prior to running
+        #   In the interim, you will need to create this directory manually to allow the test to pass.
+        result = self.sftp_client.chmod([self.test_dir_name, 755])
+        self.assertIsNone(result)
+
+        # after changing the mode to 755, confirm that the directory is listable
+        result = self.sftp_client.ls([self.test_dir_name])
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        self.assertTrue(len(result) is 0)
 
 
 def suite():
