@@ -288,7 +288,6 @@ class GetCommandTestCase(SFTPTestCase):
 def suite():
     suite = unittest.TestSuite()
     
-    """
     suite.addTest(PlaintextAuthenticationTestCase('test_plaintext_auth'))
     
     suite.addTest(PublicKeyAuthenticationTestCase('test_public_key_auth'))
@@ -305,7 +304,7 @@ def suite():
     suite.addTest(ChmodCommandTestCase('test_chmod_invalid_mode'))
     suite.addTest(ChmodCommandTestCase('test_chmod_mode_000'))
     suite.addTest(ChmodCommandTestCase('test_chmod_mode_755'))
-    """
+    
     suite.addTest(GetCommandTestCase('test_get_zero_arg'))
     suite.addTest(GetCommandTestCase('test_get_one_arg'))
     suite.addTest(GetCommandTestCase('test_get_one_arg_no_such_remote_file'))
