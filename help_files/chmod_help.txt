@@ -1,0 +1,3 @@
+chmod <remotepath> <mode> @ Set the mode of a remotepath to mode, where mode is an integer representation of the octal mode to use.
+Change permissions of a file or directory or file
+
