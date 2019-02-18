@@ -1,0 +1,3 @@
+ls @ List the contents of the current working directory on the remote server
+ls <path> @ List the contents of the requested directory on the remote server
+List directories on the remote server.

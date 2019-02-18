@@ -46,11 +46,11 @@ def main():
             # execute command, handle result accordingly.
             result = cli.execute_command(command)
             if isinstance(result, list):
-                # TODO pretty print lists
-                print(result)
+                for item in result:
+                    print(item)
             elif isinstance(result, str):
                 print(result)
-        except (ValueError, FileNotFoundError) as e:
+        except (ValueError, FileNotFoundError, TypeError, PermissionError) as e:
             print(e)
             continue
         except ExitRequested:
