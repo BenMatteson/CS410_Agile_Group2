@@ -15,16 +15,16 @@ from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
 
 class SFTPTestCase(unittest.TestCase):
     """SFTPTestCase provides a base unittest class used for testing the SFTP class
-    
+
         Unit tests can be run using the following command:
-        
+
         python3 -m unittest -v FTP_tests.py
     """
-    
+
     @classmethod
     def setUpClass(cls):
         """Test suite class setUp"""
-        
+
         cls.sftp_client = None
         cls.hostname = 'linuxlab.cs.pdx.edu'
         cls.username = PSU_ID
@@ -34,7 +34,7 @@ class SFTPTestCase(unittest.TestCase):
         cls.test_file_name = 'SFTPTestCase_file.txt'
         # directory name/path used for testing commands
         cls.test_dir_name = 'SFTPTestCase_dir'
-        
+
         if cls.__class__.__name__ is '__main__.PlaintextAuthenticationTestCase':
             # perform plaintext authentication if requested
             cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}
@@ -53,7 +53,7 @@ class SFTPTestCase(unittest.TestCase):
 
 class PlaintextAuthenticationTestCase(SFTPTestCase):
     """PlaintextAuthenticationTestCase provides a unittest class used for testing plaintext SFTP auth"""
-    
+
     def test_plaintext_auth(self):
         """Test plaintext authentication"""
         self.assertIsNotNone(self.sftp_client, SFTP)
@@ -63,7 +63,7 @@ class PlaintextAuthenticationTestCase(SFTPTestCase):
 
 class PublicKeyAuthenticationTestCase(SFTPTestCase):
     """PublicKeyAuthenticationTestCase provides a unittest class used for testing publickey SFTP auth"""
-    
+
     def test_public_key_auth(self):
         """Test public key authentication"""
         self.assertIsNotNone(self.sftp_client, SFTP)
@@ -97,7 +97,7 @@ class ListCommandTestCase(SFTPTestCase):
         with self.assertRaises(FileNotFoundError):
             result = self.sftp_client.ls(['0xdeadbeef'])
         self.assertIsNone(result)
-        
+
     def test_list_incorrect_args(self):
         """Test list command with an incorrect number of arguments (>2)"""
         # Test list command with incorrect number of arguments (> 2) to:
@@ -107,7 +107,7 @@ class ListCommandTestCase(SFTPTestCase):
         with self.assertRaises(TypeError):
             result = self.sftp_client.ls(['0xdeadbeef', '0xdeadbeef', '0xdeadbeef'])
         self.assertIsNone(result)
-        
+
     def test_list_zero_arg(self):
         """Test list command with zero arguments"""
         # Test the list command with zero arguments to:
@@ -123,7 +123,7 @@ class ListCommandTestCase(SFTPTestCase):
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
         self.assertIn(self.test_dir_name, result)
-        
+
     def test_list_one_arg(self):
         """Test list command with one argument"""
         # Test the list command with 1 argument (an empty directory that is known to exist) to:
@@ -143,7 +143,7 @@ class ListCommandTestCase(SFTPTestCase):
 
 class ChmodCommandTestCase(SFTPTestCase):
     """ChmodCommandTestCase class provides a unittest class used for testing the SFTP chmod command"""
-    
+
     def test_chmod_zero_arg(self):
         """Test chmod command with zero arguments"""
         # Test the chmod command with zero arguments to:
@@ -209,26 +209,58 @@ class ChmodCommandTestCase(SFTPTestCase):
         self.assertTrue(len(result) is 0)
 
 
+class MkdirCommandTestCase(SFTPTestCase):
+    """MkdirCommandTestCase class provides a unittest calss used for testing the SFTP mkdir command"""
+
+    def test_mkdir_zero_arg(self):
+        """Test mkdir command with zero arguments"""
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.mkdir([])
+
+    def test_mkdir_single_dir(self):
+        """Test mkdir command with path 'dirname' being created in current directory"""
+        # Successful run of test will have newly created directory in current remote directory
+        # TODO remove directory when case is finished with 'rm' directory compatibal command
+        dir_path = 'yes_I_want_fries_with_that'
+        dir_files = self.sftp_client.ls([])
+        self.assertNotIn(dir_files, dir_path)
+        self.sftp_client.mkdir(dir_path)
+        dir_files = self.sftp_client.ls([])
+        self.assertIn(dir_file, dir_path)
+
+    def test_mkdir_nested_dir(self):
+        """Test mkdir command with path 'nested/dir/dir_name"""
+        # Successful run of test will create nested directories in current remote directory
+        # TODO remove nested directories when finished with case
+        full_path = "nested/dir_name"
+        split_path = full_path.split("/")
+        dir_files = self.sftp_client.ls([])
+        self.assertNotIn(dir_path, split_path[0])
+        self.sftp_client.mkdir(full_path)
+        dir_file = self.sftp_client.ls(split_path[0])
+        self.assertIn(dir_file, split_path[1])
+
 def suite():
     suite = unittest.TestSuite()
-    
+
     suite.addTest(PlaintextAuthenticationTestCase('test_plaintext_auth'))
-    
+
     suite.addTest(PublicKeyAuthenticationTestCase('test_public_key_auth'))
-    
+
     suite.addTest(ListCommandTestCase('test_list_file'))
     suite.addTest(ListCommandTestCase('test_list_nonexistent'))
     suite.addTest(ListCommandTestCase('test_list_incorrect_args'))
     suite.addTest(ListCommandTestCase('test_list_zero_arg'))
     suite.addTest(ListCommandTestCase('test_list_one_arg'))
-    
+
     suite.addTest(ChmodCommandTestCase('test_chmod_zero_arg'))
     suite.addTest(ChmodCommandTestCase('test_chmod_three_arg'))
     suite.addTest(ChmodCommandTestCase('test_chmod_invalid_path'))
     suite.addTest(ChmodCommandTestCase('test_chmod_invalid_mode'))
     suite.addTest(ChmodCommandTestCase('test_chmod_mode_000'))
     suite.addTest(ChmodCommandTestCase('test_chmod_mode_755'))
-    
+
     return suite
 
 
@@ -238,7 +270,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', help='Verbose logging', required=False, action='store_true')
     parser.set_defaults(verbose=None)
     arguments = parser.parse_args()
-    
+
     # set verbosity
     if arguments.verbose:
         verbosity = 2

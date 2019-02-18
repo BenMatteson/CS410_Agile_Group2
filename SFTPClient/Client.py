@@ -31,10 +31,10 @@ class SFTP(object):
         else:
             raise TypeError('ls() takes exactly zero or one arguments (' + str(len(args)) + ' given)')
         return results
-    
+
     def chmod(self, args):
         """Change or modify permissions of directories and files on the remote server
-        
+
             Set the mode of a remotepath to mode, where mode is an integer representation
             of the octal mode to use.
         """
@@ -42,7 +42,28 @@ class SFTP(object):
             self.connection.chmod(args[0], int(args[1]))
         else:
             raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
-        
+
+    def mkdir(self, args):
+        """
+            Creates directory on remote path passed as an argument. Directories
+            are created with permissions 775.
+        """
+        if len(args) != 1:
+            raise TypeError("Usage: mkdir [dirname | path/to/dirname]")
+        else:
+            if args[0].find('/') != -1:
+                self.connection.makedirs(args[0], mode = 775)
+            else:
+                self.connection.mkdir(args[0], mode = 775)
+
+    def rm(self, args):
+        """
+            Remove file from remote path given by argument. Arg may include path ('/').
+        """
+        if len(args) != 1:
+            raise TypeError("Usage: rm [path | path/to/file]")
+        else:
+            self.connection.remove(args[0])
     # endregion
 
     def __del__(self):
