@@ -3,8 +3,13 @@ import paramiko
 import pysftp
 import ntpath
 import os
+from os.path import expanduser, isfile, exists, join, basename
+from os import mkdir
+
 from paramiko import ssh_exception
 from functools import wraps
+import tempfile
+import shutil
 
 DOWNLOADS_DIRECTORY = "downloads"
 HISTORY_FILE = "command_history.txt"
@@ -169,6 +174,27 @@ class SFTP(object):
 
             else:
                 raise FileNotFoundError("couldn't find the requested file")
+
+    def cp(self, args):
+        """Copy a remote directory from src to dst"""
+        if len(args) is 2:
+            if not self.connection.exists(args[1]):
+                tmp_d = tempfile.gettempdir() + '/' + basename(args[0])
+                logging.debug('Copying ' + args[0] + ' to ' + args[1] + ' using tmp_d:' + tmp_d)
+                logging.debug('Creating directory at: ' + tmp_d)
+                os.mkdir(tmp_d)
+                logging.debug('Starting get...')
+                self.connection.get_r(args[0], tmp_d, preserve_mtime=True)
+#                logging.debug('Creating new directory at: ' + args[1])
+#                self.connection.mkdir(args[1])
+                logging.debug('Starting put...')
+                self.connection.put_r(tmp_d + '/' + basename(args[0]), args[1], preserve_mtime=True)
+                logging.debug('Starting cleanup...')
+                shutil.rmtree(tmp_d)
+            else:
+               raise IOError('mkdir: ' + args[1] + ': File exists')
+        else:
+            raise TypeError('cp() takes exactly two arguments (' + str(len(args)) + ' given)')
     # endregion
 
     def lsl(self):
