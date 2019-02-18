@@ -3,4 +3,6 @@ help @ Show help file (You Are Here)
 help <command> @ Help with <command>
 ls @ List the contents of the current working directory on the remote server
 ls <path> @ List the contents of the requested directory on the remote server
+rm @ Remove remote file
+rm <file | path/to/file> @ Remove remote file
 quit @ Quits the program

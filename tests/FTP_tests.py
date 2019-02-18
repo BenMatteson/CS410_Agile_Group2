@@ -15,16 +15,16 @@ from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
 
 class SFTPTestCase(unittest.TestCase):
     """SFTPTestCase provides a base unittest class used for testing the SFTP class
-    
+
         Unit tests can be run using the following command:
-        
+
         python3 -m unittest -v FTP_tests.py
     """
-    
+
     @classmethod
     def setUpClass(cls):
         """Test suite class setUp"""
-        
+
         cls.sftp_client = None
         cls.hostname = 'linuxlab.cs.pdx.edu'
         cls.username = PSU_ID
@@ -34,7 +34,7 @@ class SFTPTestCase(unittest.TestCase):
         cls.test_file_name = 'SFTPTestCase_file.txt'
         # directory name/path used for testing commands
         cls.test_dir_name = 'SFTPTestCase_dir'
-        
+
         if cls.__class__.__name__ is '__main__.PlaintextAuthenticationTestCase':
             # perform plaintext authentication if requested
             cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}
@@ -53,7 +53,7 @@ class SFTPTestCase(unittest.TestCase):
 
 class PlaintextAuthenticationTestCase(SFTPTestCase):
     """PlaintextAuthenticationTestCase provides a unittest class used for testing plaintext SFTP auth"""
-    
+
     def test_plaintext_auth(self):
         """Test plaintext authentication"""
         self.assertIsNotNone(self.sftp_client, SFTP)
@@ -63,7 +63,7 @@ class PlaintextAuthenticationTestCase(SFTPTestCase):
 
 class PublicKeyAuthenticationTestCase(SFTPTestCase):
     """PublicKeyAuthenticationTestCase provides a unittest class used for testing publickey SFTP auth"""
-    
+
     def test_public_key_auth(self):
         """Test public key authentication"""
         self.assertIsNotNone(self.sftp_client, SFTP)
@@ -97,7 +97,7 @@ class ListCommandTestCase(SFTPTestCase):
         with self.assertRaises(FileNotFoundError):
             result = self.sftp_client.ls(['0xdeadbeef'])
         self.assertIsNone(result)
-        
+
     def test_list_incorrect_args(self):
         """Test list command with an incorrect number of arguments (>2)"""
         # Test list command with incorrect number of arguments (> 2) to:
@@ -107,7 +107,7 @@ class ListCommandTestCase(SFTPTestCase):
         with self.assertRaises(TypeError):
             result = self.sftp_client.ls(['0xdeadbeef', '0xdeadbeef', '0xdeadbeef'])
         self.assertIsNone(result)
-        
+
     def test_list_zero_arg(self):
         """Test list command with zero arguments"""
         # Test the list command with zero arguments to:
@@ -123,7 +123,7 @@ class ListCommandTestCase(SFTPTestCase):
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
         self.assertIn(self.test_dir_name, result)
-        
+
     def test_list_one_arg(self):
         """Test list command with one argument"""
         # Test the list command with 1 argument (an empty directory that is known to exist) to:
@@ -143,7 +143,7 @@ class ListCommandTestCase(SFTPTestCase):
 
 class ChmodCommandTestCase(SFTPTestCase):
     """ChmodCommandTestCase class provides a unittest class used for testing the SFTP chmod command"""
-    
+
     def test_chmod_zero_arg(self):
         """Test chmod command with zero arguments"""
         # Test the chmod command with zero arguments to:
@@ -209,26 +209,63 @@ class ChmodCommandTestCase(SFTPTestCase):
         self.assertTrue(len(result) is 0)
 
 
+class RmCommandTestCase(SFTPTestCase):
+    """RmCommandTestCase class provides a unittest class used for the rm command"""
+
+    def test_rm_zero_arg(self):
+        """Test rm command with zero arguments"""
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.rm([])
+
+    def test_rm_file_exists(self):
+        """Test rm command with file 'filepath' being removed from current directory"""
+        # Successful run of test will remove 'filepath' from current working directory
+        # TODO test implementation after the sftp.put command has been implemented
+        filepath = self.test_file_name
+        dir_files = self.sftp_client.ls([])
+        self.assertNotIn(dir_files, filepath)
+        self.sftp_client.put(filepath)
+        dir_files = self.sftp_client.ls([])
+        self.assertIn(dir_files, filepath)
+        self.sftp_client.rm(filepath)
+        dir_files = self.sftp_client.ls([])
+        self.assertNotIn(dir_files, filepath)
+
+    def test_rm_file_nonexistent(self):
+        """Test rm command against a file that does not exist in the remote path"""
+        # Successful run of test will return an TypeError
+        dir_files = self.sftp_client.ls([])
+        filepath = self.test_file_name
+        self.assertNotIn(dir_files, filepath)
+        with self.assertRaises(IOError):
+            self.sftp_client.rm(filepath)
+
+
+
 def suite():
     suite = unittest.TestSuite()
-    
+
     suite.addTest(PlaintextAuthenticationTestCase('test_plaintext_auth'))
-    
+
     suite.addTest(PublicKeyAuthenticationTestCase('test_public_key_auth'))
-    
+
     suite.addTest(ListCommandTestCase('test_list_file'))
     suite.addTest(ListCommandTestCase('test_list_nonexistent'))
     suite.addTest(ListCommandTestCase('test_list_incorrect_args'))
     suite.addTest(ListCommandTestCase('test_list_zero_arg'))
     suite.addTest(ListCommandTestCase('test_list_one_arg'))
-    
+
     suite.addTest(ChmodCommandTestCase('test_chmod_zero_arg'))
     suite.addTest(ChmodCommandTestCase('test_chmod_three_arg'))
     suite.addTest(ChmodCommandTestCase('test_chmod_invalid_path'))
     suite.addTest(ChmodCommandTestCase('test_chmod_invalid_mode'))
     suite.addTest(ChmodCommandTestCase('test_chmod_mode_000'))
     suite.addTest(ChmodCommandTestCase('test_chmod_mode_755'))
-    
+
+    suite.addTest(RmCommandTestCase('test_rm_zero_arg'))
+    #suite.addTest(RmCommandTestCase('test_rm_file_exists')) # see TODO
+    suite.addTest(RmCommandTestCase('test_rm_file_nonexistent'))
     return suite
 
 
@@ -238,7 +275,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', help='Verbose logging', required=False, action='store_true')
     parser.set_defaults(verbose=None)
     arguments = parser.parse_args()
-    
+
     # set verbosity
     if arguments.verbose:
         verbosity = 2
