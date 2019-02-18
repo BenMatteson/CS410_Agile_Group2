@@ -3,7 +3,7 @@ import logging
 import paramiko
 import pysftp
 import ntpath
-from os.path import expanduser, isfile, exists
+from os.path import expanduser, isfile, exists, join
 from os import mkdir
 from paramiko import ssh_exception
 
@@ -49,21 +49,24 @@ class SFTP(object):
             raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
         
     def get(self, args):
+        """
+        Downloads a remote file to the local machine. Given a single remotepath
+        argument (arg[0]), the file is placed in the DOWNLOADS_DIRECTORY. If
+        given a remotepath argument (arg[0]) and a localpath argument (arg[1]),
+        the file is downloaded to the localpath.
+        """
         if len(args) < 1 or len(args) > 2:
             raise TypeError("get() takes 1 or 2 arguments (" + str(len(args)) + " given)")
             
-        # Ensure remote file exists otherwise pysftp will create an empty file in the target directory
+        # Check file exists or pysftp will create an empty file in the target directory
         if self.connection.isfile(args[0]):
             if len(args) is 1:
-                # remotepath=args[0], localpath=None
                 head, tail = ntpath.split(args[0])
                 remote_file = tail or ntpath.basename(head)
-                self.connection.get(args[0], f"{DOWNLOADS_DIRECTORY}/{remote_file}")
-                print(f"The file '{args[0]}' has been downloaded to {DOWNLOADS_DIRECTORY}")
+                localpath = join(DOWNLOADS_DIRECTORY, remote_file) 
+                self.connection.get(args[0], localpath)
             elif len(args) is 2:
-                # remotepath=args[0], localpath=args[1]
                 self.connection.get(args[0], expanduser(args[1]))
-                print(f"The file '{args[0]}' has been downloaded to {args[1]}")
         else:
             raise IOError(f"The remote path '{args[0]}' is not a file")
 
