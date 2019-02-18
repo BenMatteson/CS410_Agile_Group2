@@ -3,14 +3,18 @@ import logging
 import paramiko
 import pysftp
 import ntpath
-from os.path import expanduser, isfile
+from os.path import expanduser, isfile, exists
+from os import mkdir
 from paramiko import ssh_exception
 
+DOWNLOADS_DIRECTORY = "downloads"
 
 class SFTP(object):
     def __init__(self, hostname, username, password=None, private_key_password=None):
         self.local_directory = expanduser('~')
         self.connection = initiate_connection(hostname, username, password, private_key_password)
+        if not exists(DOWNLOADS_DIRECTORY):
+            mkdir(DOWNLOADS_DIRECTORY)
 
     def is_connected(self):
         """Check the connection (using the listdir() method) to confirm that it's active."""
@@ -47,14 +51,16 @@ class SFTP(object):
     def get(self, args):
         if len(args) is 1:
             # remotepath=args[0], localpath=None
-            self.connection.get(args[0])
-            print(f"The file '{args[0]}' has been downloaded")
+            head, tail = ntpath.split(args[0])
+            remote_file = tail or ntpath.basename(head)
+            self.connection.get(args[0], f"{DOWNLOADS_DIRECTORY}/{remote_file}")
+            print(f"The file '{args[0]}' has been downloaded to {DOWNLOADS_DIRECTORY}")
         elif len(args) is 2:
             # remotepath=args[0], localpath=args[1]
             self.connection.get(args[0], args[1])
-            print(f"The file '{args[0]}' has been downloaded")
+            print(f"The file '{args[0]}' has been downloaded to {args[1]}")
         else:
-            print(f"get() takes one or two arguments") 
+            print(f"get() takes one or two arguments")
 
     # endregion
 
