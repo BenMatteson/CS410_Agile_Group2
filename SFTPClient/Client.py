@@ -62,7 +62,7 @@ class SFTP(object):
                 print(f"The file '{args[0]}' has been downloaded to {DOWNLOADS_DIRECTORY}")
             elif len(args) is 2:
                 # remotepath=args[0], localpath=args[1]
-                self.connection.get(args[0], args[1])
+                self.connection.get(args[0], expanduser(args[1]))
                 print(f"The file '{args[0]}' has been downloaded to {args[1]}")
         else:
             raise IOError(f"The remote path '{args[0]}' is not a file")
