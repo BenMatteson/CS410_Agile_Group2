@@ -49,18 +49,23 @@ class SFTP(object):
             raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
         
     def get(self, args):
-        if len(args) is 1:
-            # remotepath=args[0], localpath=None
-            head, tail = ntpath.split(args[0])
-            remote_file = tail or ntpath.basename(head)
-            self.connection.get(args[0], f"{DOWNLOADS_DIRECTORY}/{remote_file}")
-            print(f"The file '{args[0]}' has been downloaded to {DOWNLOADS_DIRECTORY}")
-        elif len(args) is 2:
-            # remotepath=args[0], localpath=args[1]
-            self.connection.get(args[0], args[1])
-            print(f"The file '{args[0]}' has been downloaded to {args[1]}")
+        if len(args) < 1 or len(args) > 2:
+            raise TypeError("get() takes 1 or 2 arguments (" + str(len(args)) + " given)")
+            
+        # Ensure remote file exists otherwise pysftp will create an empty file in the target directory
+        if self.connection.isfile(args[0]):
+            if len(args) is 1:
+                # remotepath=args[0], localpath=None
+                head, tail = ntpath.split(args[0])
+                remote_file = tail or ntpath.basename(head)
+                self.connection.get(args[0], f"{DOWNLOADS_DIRECTORY}/{remote_file}")
+                print(f"The file '{args[0]}' has been downloaded to {DOWNLOADS_DIRECTORY}")
+            elif len(args) is 2:
+                # remotepath=args[0], localpath=args[1]
+                self.connection.get(args[0], args[1])
+                print(f"The file '{args[0]}' has been downloaded to {args[1]}")
         else:
-            print(f"get() takes one or two arguments")
+            raise IOError(f"The remote path '{args[0]}' is not a file")
 
     # endregion
 
