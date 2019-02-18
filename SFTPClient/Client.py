@@ -2,6 +2,7 @@ import logging
 
 import paramiko
 import pysftp
+import ntpath
 from os.path import expanduser, isfile
 from paramiko import ssh_exception
 
@@ -43,6 +44,18 @@ class SFTP(object):
         else:
             raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
         
+    def get(self, args):
+        if len(args) is 1:
+            # remotepath=args[0], localpath=None
+            self.connection.get(args[0])
+            print(f"The file '{args[0]}' has been downloaded")
+        elif len(args) is 2:
+            # remotepath=args[0], localpath=args[1]
+            self.connection.get(args[0], args[1])
+            print(f"The file '{args[0]}' has been downloaded")
+        else:
+            print(f"get() takes one or two arguments") 
+
     # endregion
 
     def __del__(self):
