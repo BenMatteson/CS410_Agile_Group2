@@ -181,25 +181,23 @@ class SFTP(object):
             if not self.connection.exists(args[1]):
                 try:
                     tmp_d = tempfile.gettempdir()
-                    local_d = tmp_d + '/' + basename(args[0])
+                    local_d = os.path.join(tmp_d, basename(args[0]))
                     remote_d = args[1]
                     logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
                     logging.debug('Creating directory at: ' + tmp_d)
                     os.mkdir(local_d)
                     logging.debug('Starting get...')
-                    self.connection.get_d(args[0], local_d, preserve_mtime=True)
+                    self.connection.get_r(args[0], local_d, preserve_mtime=True)
                     logging.debug('Copied ' + basename(args[0]) + ' to ' + local_d)
                     logging.debug('Creating new directory at: ' + remote_d)
                     self.connection.mkdir(args[1])
                     logging.debug('Starting put...')
                     self.connection.put_r(local_d, remote_d, preserve_mtime=True)
-                    raise Exception
                 except Exception as e:
-                    print(e)
+                    raise(e)
                 finally:
                     logging.debug('Starting cleanup...')
                     shutil.rmtree(local_d)
-            
             else:
                raise IOError('mkdir: ' + args[1] + ': File exists')
         else:
