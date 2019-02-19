@@ -179,18 +179,27 @@ class SFTP(object):
         """Copy a remote directory from src to dst"""
         if len(args) is 2:
             if not self.connection.exists(args[1]):
-                tmp_d = tempfile.gettempdir() + '/' + basename(args[0])
-                logging.debug('Copying ' + args[0] + ' to ' + args[1] + ' using tmp_d:' + tmp_d)
-                logging.debug('Creating directory at: ' + tmp_d)
-                os.mkdir(tmp_d)
-                logging.debug('Starting get...')
-                self.connection.get_r(args[0], tmp_d, preserve_mtime=True)
-#                logging.debug('Creating new directory at: ' + args[1])
-#                self.connection.mkdir(args[1])
-                logging.debug('Starting put...')
-                self.connection.put_r(tmp_d + '/' + basename(args[0]), args[1], preserve_mtime=True)
-                logging.debug('Starting cleanup...')
-                shutil.rmtree(tmp_d)
+                try:
+                    tmp_d = tempfile.gettempdir()
+                    local_d = tmp_d + '/' + basename(args[0])
+                    remote_d = args[1]
+                    logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
+                    logging.debug('Creating directory at: ' + tmp_d)
+                    os.mkdir(local_d)
+                    logging.debug('Starting get...')
+                    self.connection.get_d(args[0], local_d, preserve_mtime=True)
+                    logging.debug('Copied ' + basename(args[0]) + ' to ' + local_d)
+                    logging.debug('Creating new directory at: ' + remote_d)
+                    self.connection.mkdir(args[1])
+                    logging.debug('Starting put...')
+                    self.connection.put_r(local_d, remote_d, preserve_mtime=True)
+                    raise Exception
+                except Exception as e:
+                    print(e)
+                finally:
+                    logging.debug('Starting cleanup...')
+                    shutil.rmtree(local_d)
+            
             else:
                raise IOError('mkdir: ' + args[1] + ': File exists')
         else:
