@@ -212,6 +212,7 @@ class ChmodCommandTestCase(SFTPTestCase):
         self.assertTrue(len(result) is 0)
 
 class GetCommandTestCase(SFTPTestCase):
+    """GetCommandTestCase class provides a unittest class used for testing the SFTP get command"""
 
     def test_get_zero_arg(self):
         """Test get command with zero arguments"""
