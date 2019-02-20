@@ -53,7 +53,7 @@ class SFTP(object):
             if self.connection.isfile(args[0]):
                 self.connection.remove(args[0])
             else:
-                print("Usage: rm [filename | path/to/filename]")
+                raise TypeError("Usage: rm [filename | path/to/filename]")
 
     # endregion
 
