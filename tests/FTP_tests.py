@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-
+import os
 import sys
 from os import path, remove, rmdir
 import unittest
 from unittest import main
+from unittest.mock import Mock, MagicMock, patch
+
 import warnings
 import argparse
+
+from unittest.mock import Mock, MagicMock, patch
 
 # fix for running as script?
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from SFTPClient.Client import SFTP
 from SFTPClient.Client import DOWNLOADS_DIRECTORY
+import SFTPClient
 from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
 
 
@@ -62,6 +67,20 @@ class PlaintextAuthenticationTestCase(SFTPTestCase):
         self.assertIsNotNone(self.sftp_client, SFTP)
         self.assertIsInstance(self.sftp_client, SFTP)
         self.assertTrue(self.sftp_client.is_connected())
+
+        hostname = 'linuxlab.cs.pdx.edu'
+        username = PSU_ID
+        password = PSU_CECS_PASSWORD
+        args = {'hostname': hostname, 'username': username, 'password': password}
+        self.sftp_client = SFTP(**args)
+        self.assertTrue(self.sftp_client.is_connected())
+
+    def test_private_key_auth(self):
+        hostname = 'linuxlab.cs.pdx.edu'
+        username = PSU_ID
+        private_key_password = PRIVATE_KEY_PASSWORD
+        args = {'hostname': hostname, 'username': username, 'private_key_password': private_key_password}
+        self.sftp_client = SFTP(**args)
 
 
 class PublicKeyAuthenticationTestCase(SFTPTestCase):
@@ -319,12 +338,66 @@ class MkdirCommandTestCase(SFTPTestCase):
         self.assertIn(split_path[1], dir_files)
 
 
+class PutTestCase(SFTPTestCase):
+    def setUp(self):
+        SFTPClient.Client.initiate_connection = MagicMock()
+        self.sftp = SFTP('testhost', 'testuser', 'testpass', 'test_priv_key_pass')
+        SFTPClient.Client.initiate_connection.assert_called_once_with('testhost', 'testuser', 'testpass', 'test_priv_key_pass')
+
+    def tearDown(self):
+        pass
+
+    def test_put_file(self):
+        SFTP.connection = MagicMock()
+        SFTP.connection.put = MagicMock()
+        SFTPClient.Client.os.path.isfile = MagicMock(return_value=False)
+        SFTPClient.Client.os.path.isdir = MagicMock(return_value=False)
+
+        # file tests
+        # test not found
+        with self.assertRaises(FileNotFoundError):
+            self.sftp.put(['test.file'])
+
+        with self.assertRaises(FileNotFoundError):
+            self.sftp.put(['test_dir'])
+
+        with self.assertRaises(FileNotFoundError):
+            self.sftp.put(['-r', 'test_dir'])
+
+        # test is a file
+        SFTPClient.Client.os.path.isfile.return_value = True
+        self.sftp.put(['test.file'])
+        self.sftp.connection.put.assert_called_once_with('test.file', preserve_mtime=True)
+
+        # dir tests
+        SFTPClient.Client.os.path.isfile.return_value = False
+        # test is a dir
+        SFTPClient.Client.os.path.isdir.return_value = True
+        self.sftp.put(['test_dir'])
+        self.sftp.connection.put_d.assert_called_once_with('test_dir', preserve_mtime=True)
+
+        # test is a dir w/ recursive flag
+        SFTPClient.Client.os.path.isdir.return_value = True
+        self.sftp.put(['-r', 'test_dir'])
+        self.sftp.connection.put_r.assert_called_once_with('test_dir', preserve_mtime=True)
+
+    def test_put_file_actual(self):
+        self.sftp_client.put([self.test_file_name])
+
+    def test_put_dir_actual(self):
+        self.sftp_client.put([self.test_dir_name])
+
+
 def suite():
     suite = unittest.TestSuite()
 
     suite.addTest(PlaintextAuthenticationTestCase('test_plaintext_auth'))
 
     suite.addTest(PublicKeyAuthenticationTestCase('test_public_key_auth'))
+
+    suite.addTest(PutTestCase('test_put_file'))
+    # suite.addTest(PutTestCase('test_put_file_actual'))
+    # suite.addTest(PutTestCase('test_put_dir_actual'))
 
     suite.addTest(ListCommandTestCase('test_list_file'))
     suite.addTest(ListCommandTestCase('test_list_nonexistent'))

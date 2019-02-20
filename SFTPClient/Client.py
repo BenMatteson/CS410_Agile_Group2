@@ -1,10 +1,12 @@
+# Client.py
 import logging
-
 import paramiko
 import pysftp
 import ntpath
 from os.path import expanduser, isfile, exists, join
 from os import mkdir
+
+# import os
 from paramiko import ssh_exception
 
 DOWNLOADS_DIRECTORY = "downloads"
@@ -15,10 +17,10 @@ class SFTP(object):
         self.username = username
         self.password = password
         self.private_key_password = private_key_password
-        self.local_directory = expanduser('~')
         if not exists(DOWNLOADS_DIRECTORY):
             mkdir(DOWNLOADS_DIRECTORY)
-        self.connection = self.initiate_connection()
+        self.local_directory = expanduser('~')
+        self.connection = initiate_connection(hostname, username, password, private_key_password)
 
     def is_connected(self):
         """Check the connection (using the listdir() method) to confirm that it's active."""
@@ -84,7 +86,21 @@ class SFTP(object):
                 self.connection.get(args[0], expanduser(args[1]))
         else:
             raise IOError(f"The remote path '{args[0]}' is not a file")
-
+    def put(self, args):
+        recursive = False
+        if len(args) > 1 and args[0] == '-r':
+            recursive = True
+            args = args[1:]
+        for arg in args:
+            if os.path.isfile(arg):
+                self.connection.put(arg, preserve_mtime=True)
+            elif os.path.isdir(arg):
+                if recursive:
+                    self.connection.put_r(arg, preserve_mtime=True)
+                else:
+                    self.connection.put_d(arg, preserve_mtime=True)
+            else:
+                raise FileNotFoundError("couldn't find the requested file or folder")
     # endregion
 
     def __del__(self):
