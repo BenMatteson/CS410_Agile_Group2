@@ -224,10 +224,10 @@ class MkdirCommandTestCase(SFTPTestCase):
         # TODO remove directory when case is finished with 'rm' directory compatibal command
         dir_path = 'yes_I_want_fries_with_that'
         dir_files = self.sftp_client.ls([])
-        self.assertNotIn(dir_files, dir_path)
+        self.assertFalse(dir_path in dir_files)
         self.sftp_client.mkdir(dir_path)
         dir_files = self.sftp_client.ls([])
-        self.assertIn(dir_file, dir_path)
+        self.assertTrue(dir_path in dir_files)
 
     def test_mkdir_nested_dir(self):
         """Test mkdir command with path 'nested/dir/dir_name"""
@@ -236,10 +236,10 @@ class MkdirCommandTestCase(SFTPTestCase):
         full_path = "nested/dir_name"
         split_path = full_path.split("/")
         dir_files = self.sftp_client.ls([])
-        self.assertNotIn(dir_path, split_path[0])
+        self.assertFalse(split_path[0] in dir_files)
         self.sftp_client.mkdir(full_path)
-        dir_file = self.sftp_client.ls(split_path[0])
-        self.assertIn(dir_file, split_path[1])
+        dir_files = self.sftp_client.ls(split_path[0])
+        self.assertIn(split_path[1] in dir_files)
 
 
 def suite():
