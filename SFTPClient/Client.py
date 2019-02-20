@@ -44,17 +44,17 @@ class SFTP(object):
             raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
 
     def mkdir(self, args):
-    """
-        Creates directory on remote path passed as an argument. Directories
-        are created with permissions 775.
-    """
-    if len(args) != 1:
-        raise TypeError("Usage: mkdir [dirname | path/to/dirname]")
-    else:
-        if args[0].find('/') != -1:
-            self.connection.makedirs(args[0], mode = 775)
+        """
+            Creates directory on remote path passed as an argument. Directories
+            are created with permissions 775.
+        """
+        if len(args) != 1:
+            raise TypeError("Usage: mkdir [dirname | path/to/dirname]")
         else:
-            self.connection.mkdir(args[0], mode = 775)
+            if args[0].find('/') != -1:
+                self.connection.makedirs(args[0], mode = 775)
+            else:
+                self.connection.mkdir(args[0], mode = 775)
 
     # endregion
 
