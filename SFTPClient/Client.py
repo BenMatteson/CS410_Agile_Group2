@@ -48,9 +48,12 @@ class SFTP(object):
             Remove file from remote path given by argument. Arg may include path ('/').
         """
         if len(args) != 1:
-            raise TypeError("Usage: rm [path | path/to/file]")
+            raise TypeError("Usage: rm [filename | path/to/filename]")
         else:
-            self.connection.remove(args[0])
+            if self.connection.isfile(args[0]):
+                self.connection.remove(args[0])
+            else:
+                print("Usage: rm [filename | path/to/filename]")
 
     # endregion
 

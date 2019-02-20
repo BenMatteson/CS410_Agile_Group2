@@ -224,20 +224,20 @@ class RmCommandTestCase(SFTPTestCase):
         # TODO test implementation after the sftp.put command has been implemented
         filepath = self.test_file_name
         dir_files = self.sftp_client.ls([])
-        self.assertNotIn(dir_files, filepath)
+        self.assertFalse(filepath in dir_files)
         self.sftp_client.put(filepath)
         dir_files = self.sftp_client.ls([])
-        self.assertIn(dir_files, filepath)
+        self.assertTrue(filepath in dir_files)
         self.sftp_client.rm(filepath)
         dir_files = self.sftp_client.ls([])
-        self.assertNotIn(dir_files, filepath)
+        self.assertFalse(filepath in dir_files)
 
     def test_rm_file_nonexistent(self):
         """Test rm command against a file that does not exist in the remote path"""
         # Successful run of test will return an TypeError
         dir_files = self.sftp_client.ls([])
         filepath = self.test_file_name
-        self.assertNotIn(dir_files, filepath)
+        self.assertFalse(filepath in dir_files)
         with self.assertRaises(IOError):
             self.sftp_client.rm(filepath)
 
