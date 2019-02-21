@@ -96,9 +96,9 @@ class SFTP(object):
                 self.connection.put(arg, preserve_mtime=True)
             elif os.path.isdir(arg):
                 if recursive:
-                    self.connection.put_r(arg, preserve_mtime=True)
+                    self.connection.put_r(arg, arg, preserve_mtime=True)
                 else:
-                    self.connection.put_d(arg, preserve_mtime=True)
+                    self.connection.put_d(arg, arg, preserve_mtime=True)
             else:
                 raise FileNotFoundError("couldn't find the requested file or folder")
     # endregion

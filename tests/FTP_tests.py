@@ -338,54 +338,57 @@ class MkdirCommandTestCase(SFTPTestCase):
         self.assertIn(split_path[1], dir_files)
 
 
-class PutTestCase(SFTPTestCase):
+# TODO these unit tests can't be run alongside the non-mocked tests, should find a home for them
+class PutUinitTests(SFTPTestCase):
     def setUp(self):
         SFTPClient.Client.initiate_connection = MagicMock()
         self.sftp = SFTP('testhost', 'testuser', 'testpass', 'test_priv_key_pass')
         SFTPClient.Client.initiate_connection.assert_called_once_with('testhost', 'testuser', 'testpass', 'test_priv_key_pass')
-
-    def tearDown(self):
-        pass
-
-    def test_put_file(self):
         SFTP.connection = MagicMock()
         SFTP.connection.put = MagicMock()
         SFTPClient.Client.os.path.isfile = MagicMock(return_value=False)
         SFTPClient.Client.os.path.isdir = MagicMock(return_value=False)
 
-        # file tests
-        # test not found
+    def tearDown(self):
+        pass
+
+    def test_put_file_not_found(self):
         with self.assertRaises(FileNotFoundError):
             self.sftp.put(['test.file'])
 
+    def test_put_dir_not_found(self):
         with self.assertRaises(FileNotFoundError):
             self.sftp.put(['test_dir'])
 
+    def test_put_dir_recursive_not_found(self):
         with self.assertRaises(FileNotFoundError):
             self.sftp.put(['-r', 'test_dir'])
 
-        # test is a file
+    def test_put_file(self):
         SFTPClient.Client.os.path.isfile.return_value = True
         self.sftp.put(['test.file'])
         self.sftp.connection.put.assert_called_once_with('test.file', preserve_mtime=True)
 
-        # dir tests
-        SFTPClient.Client.os.path.isfile.return_value = False
-        # test is a dir
+    def test_put_dir(self):
         SFTPClient.Client.os.path.isdir.return_value = True
         self.sftp.put(['test_dir'])
-        self.sftp.connection.put_d.assert_called_once_with('test_dir', preserve_mtime=True)
+        self.sftp.connection.put_d.assert_called_once_with('test_dir', 'test_dir', preserve_mtime=True)
 
-        # test is a dir w/ recursive flag
+    def test_put_dir_recursive(self):
         SFTPClient.Client.os.path.isdir.return_value = True
         self.sftp.put(['-r', 'test_dir'])
-        self.sftp.connection.put_r.assert_called_once_with('test_dir', preserve_mtime=True)
+        self.sftp.connection.put_r.assert_called_once_with('test_dir', 'test_dir', preserve_mtime=True)
+
+
+class PutTest(SFTPTestCase):
+    def test_put_file_not_found(self):
+        with self.assertRaises(FileNotFoundError):
+            self.sftp_client.put(['0xdeadbeef'])
 
     def test_put_file_actual(self):
         self.sftp_client.put([self.test_file_name])
-
-    def test_put_dir_actual(self):
-        self.sftp_client.put([self.test_dir_name])
+        result = self.sftp_client.ls([])
+        self.assertIn(self.test_file_name, result)
 
 
 def suite():
@@ -395,9 +398,14 @@ def suite():
 
     suite.addTest(PublicKeyAuthenticationTestCase('test_public_key_auth'))
 
-    suite.addTest(PutTestCase('test_put_file'))
-    # suite.addTest(PutTestCase('test_put_file_actual'))
-    # suite.addTest(PutTestCase('test_put_dir_actual'))
+    # suite.addTest(PutUinitTests('test_put_file_not_found'))
+    # suite.addTest(PutUinitTests('test_put_dir_not_found'))
+    # suite.addTest(PutUinitTests('test_put_dir_recursive_not_found'))
+    # suite.addTest(PutUinitTests('test_put_file'))
+    # suite.addTest(PutUinitTests('test_put_dir'))
+    # suite.addTest(PutUinitTests('test_put_dir_recursive'))
+    suite.addTest(PutTest('test_put_file_not_found'))
+    suite.addTest(PutTest('test_put_file_actual'))
 
     suite.addTest(ListCommandTestCase('test_list_file'))
     suite.addTest(ListCommandTestCase('test_list_nonexistent'))
