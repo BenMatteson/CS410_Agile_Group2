@@ -7,7 +7,7 @@ from paramiko import ssh_exception
 
 
 class SFTP(object):
-    def __init__(self, hostname, username, password, private_key_password):
+    def __init__(self, hostname, username, password=None, private_key_password=None):
         self.hostname = hostname
         self.username = username
         self.password = password
