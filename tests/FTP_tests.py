@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
-from os import path
+from os import path, remove, rmdir
 import unittest
 from unittest import main
 import warnings
@@ -10,6 +10,7 @@ import argparse
 # fix for running as script?
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from SFTPClient.Client import SFTP
+from SFTPClient.Client import DOWNLOADS_DIRECTORY
 from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
 
 
@@ -49,6 +50,8 @@ class SFTPTestCase(unittest.TestCase):
     def tearDownClass(cls):
         # TODO: should we perform a proper disconnect when doing a tearDown()?
         cls.sftp_client = None
+        if path.exists(DOWNLOADS_DIRECTORY):
+            rmdir(DOWNLOADS_DIRECTORY)
 
 
 class PlaintextAuthenticationTestCase(SFTPTestCase):
@@ -208,6 +211,80 @@ class ChmodCommandTestCase(SFTPTestCase):
         self.assertIsInstance(result, list)
         self.assertTrue(len(result) is 0)
 
+class GetCommandTestCase(SFTPTestCase):
+    """GetCommandTestCase class provides a unittest class used for testing the SFTP get command"""
+
+    def test_get_zero_arg(self):
+        """Test get command with zero arguments"""
+        # Test the get command with zero arguments to:
+        #  confirm that the test will fail with a TypeError exception
+        with self.assertRaises(TypeError):
+            self.sftp_client.get([])
+
+    def test_get_one_arg(self):
+        """Test get command with one argument"""
+        # Test the get command with one argument to:
+        #  confirm that the remote file is downloaded to DOWNLOADS_DIRECTORY
+        file_name = "SFTP_test_get_one_arg.txt"
+        localpath = path.join(DOWNLOADS_DIRECTORY, file_name)
+        self.sftp_client.connection.execute(f"printf '{file_name}' > {file_name}")
+        self.sftp_client.get([file_name])
+        file_text = None
+        with open(localpath, "r") as f:
+            file_text = f.read()
+        self.assertEqual(file_name, file_text)
+        self.sftp_client.connection.remove(file_name)
+        remove(localpath)
+        
+    def test_get_one_arg_no_such_remote_file(self):
+        """Test get command with one invalid argument"""
+        # Test the get command with one argument to:
+        #  confirm that the test will fail with an IOError exception
+        file_name = "SFTP_this_file_does_not_exist.txt"
+        with self.assertRaises(IOError):
+            self.sftp_client.get([file_name])
+        
+    def test_get_two_arg(self):
+        """Test get command with two argument"""
+        # Test the get command with two argument to:
+        #  confirm that the remote file is downloaded to the localpath
+        file_name = "SFTP_test_get_two_arg.txt"
+        localpath = path.expanduser(path.join('~', 'Desktop', file_name))
+        self.sftp_client.connection.execute(f"printf '{file_name}' > {file_name}")
+        self.sftp_client.get([file_name, localpath])
+        file_text = None
+        with open(localpath, "r") as f:
+            file_text = f.read()
+        self.assertEqual(file_name, file_text)
+        self.sftp_client.connection.remove(file_name)
+        remove(localpath)
+        
+    def test_get_two_arg_no_such_remote_file(self):
+        """Test get command with two arguments where the first is an invalid remotepath"""
+        # Test the get command with an invalid remotepath to:
+        #  confirm that the test will fail with an IOError exception
+        file_name = "SFTP_this_file_does_not_exist.txt"
+        localpath = path.expanduser(path.join('~', 'Desktop', file_name))
+        with self.assertRaises(IOError):
+            self.sftp_client.get([file_name, localpath])
+
+    def test_get_two_arg_no_such_localpath(self):
+        """Test get command with two arguments where the second is an invalid localpath"""
+        # Test the get command with an invalid localpath to:
+        #  confirm that the test will fail with an IOError exception
+        file_name = "SFTP_test_get_two_arg_no_such_localpath.txt"
+        localpath = path.join("SFTP","this", "localpath", "does", "not", "exist")
+        self.sftp_client.connection.execute(f"printf '{file_name}' > {file_name}")
+        with self.assertRaises(IOError):
+            self.sftp_client.get([file_name, localpath])
+        self.sftp_client.connection.remove(file_name)
+
+    def test_get_three_arg(self):
+        """Test get command with three arguments"""
+        # Test the get command with more than two arguments to:
+        #  confirm that the test will fail with a TypeError exception
+        with self.assertRaises(TypeError):
+            self.sftp_client.get(["file1", "file2", "file3"])
 
 def suite():
     suite = unittest.TestSuite()
@@ -228,6 +305,14 @@ def suite():
     suite.addTest(ChmodCommandTestCase('test_chmod_invalid_mode'))
     suite.addTest(ChmodCommandTestCase('test_chmod_mode_000'))
     suite.addTest(ChmodCommandTestCase('test_chmod_mode_755'))
+    
+    suite.addTest(GetCommandTestCase('test_get_zero_arg'))
+    suite.addTest(GetCommandTestCase('test_get_one_arg'))
+    suite.addTest(GetCommandTestCase('test_get_one_arg_no_such_remote_file'))
+    suite.addTest(GetCommandTestCase('test_get_two_arg'))
+    suite.addTest(GetCommandTestCase('test_get_two_arg_no_such_remote_file'))
+    suite.addTest(GetCommandTestCase('test_get_two_arg_no_such_localpath'))
+    suite.addTest(GetCommandTestCase('test_get_three_arg'))
     
     return suite
 
