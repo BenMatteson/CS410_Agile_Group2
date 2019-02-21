@@ -1,0 +1,6 @@
+put <file_name> [<file_name> ...] @ Put the given file(s) to the remote server
+put <dir_name> [<dir_name> ...] @ Put the first level contents of the given directory to the remote server
+put -r <dir_name> [<dir_name> ...] @ Puts the full contents of the directory and sub-directories to the remote server
+Puts the provided files or directories to the remote server.
+Mixing files and folders in a single command is permitted, but the '-r' flag must be at the beginning
+and will apply to all folders included in that command.
