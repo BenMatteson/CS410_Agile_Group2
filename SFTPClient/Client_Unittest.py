@@ -22,7 +22,7 @@ class Testis_connected(Test_Client):
         # actual
         actual = self.myClass.is_connected()
         # verify
-        self.myClass.connection.listdir_assert_called_once_with([])
+        self.myClass.connection.listdir.assert_called_once_with()
         self.assertTrue(actual)
 
     def test_Test_Client1(self):
@@ -31,7 +31,7 @@ class Testis_connected(Test_Client):
         # actual
         actual = self.myClass.is_connected()
         # verify
-        self.myClass.connection.listdir_assert_called_once_with([])
+        self.myClass.connection.listdir.assert_called_once_with()
         self.assertFalse(actual)
 
 
@@ -42,7 +42,7 @@ class Testping(Test_Client):
         # actual
         actual = self.myClass.ping()
         # verify
-        self.myClass.connection.listdir_assert_called_once_with([])
+        self.myClass.connection.listdir.assert_called_once_with()
         self.assertEqual(actual, "pong")
 
     def test_ping1(self):
@@ -51,7 +51,7 @@ class Testping(Test_Client):
         # actual
         actual = self.myClass.ping()
         # verify
-        self.myClass.connection.listdir_assert_called_once_with([])
+        self.myClass.connection.listdir.assert_called_once_with()
         self.assertEqual(actual, "nothing happened")
 
 
@@ -60,19 +60,19 @@ class Testls(Test_Client):
         # actual
         actual = self.myClass.ls([])
         # verify
-        self.myClass.connection.listdir.called_once_with([])
+        self.myClass.connection.listdir.assert_called_once_with()
         self.assertTrue(actual)
 
     def test_ls1(self):
         # actual
         actual = self.myClass.ls(["car"])
         # verify
-        self.myClass.connection.listdir.called_once_with(["car"])
+        self.myClass.connection.listdir.assert_called_once_with(("car"))
         self.assertTrue(actual, "car")
 
     def test_ls2(self):
         # verify
-        self.assertRaises(TypeError, self.myClass.ls, 'car', 'boat')
+        self.assertRaises(TypeError, self.myClass.ls, ['car', 'boat'])
 
 
 class Testchmod(Test_Client):
