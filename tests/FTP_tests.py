@@ -238,7 +238,7 @@ class RmCommandTestCase(SFTPTestCase):
         dir_files = self.sftp_client.ls([])
         filepath = self.test_file_name
         self.assertFalse(filepath in dir_files)
-        with self.assertRaises(IOError):
+        with self.assertRaises(TypeError):
             self.sftp_client.rm(filepath)
 
 
