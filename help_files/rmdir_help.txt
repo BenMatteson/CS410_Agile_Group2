@@ -1,0 +1,2 @@
+rmdir <remotepath> @ Delete a directory and its contents
+Recursively deletes a directory and all its files and subdirectories
