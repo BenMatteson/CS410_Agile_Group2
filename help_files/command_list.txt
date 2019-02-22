@@ -1,6 +1,10 @@
 chmod <remotepath> <mode> @ Set the permissions of <remotepath> to <mode>
+get <remotepath> @ Download a remote file to the downloads directory
+get <remotepath> <localpath> @ Download a remote file to the specified directory
 help @ Show help file (You Are Here)
 help <command> @ Help with <command>
 ls @ List the contents of the current working directory on the remote server
 ls <path> @ List the contents of the requested directory on the remote server
+mkdir @ Create remote directory
+mkdir <path | path/to/dir> @ Creates remote directory
 quit @ Quits the program
