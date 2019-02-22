@@ -11,7 +11,7 @@ import argparse
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from SFTPClient.Client import SFTP
 from SFTPClient.Client import DOWNLOADS_DIRECTORY
-#from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
+from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
 
 
 class SFTPTestCase(unittest.TestCase):
@@ -28,9 +28,9 @@ class SFTPTestCase(unittest.TestCase):
 
         cls.sftp_client = None
         cls.hostname = 'linuxlab.cs.pdx.edu'
-        cls.username = 'brialee'#PSU_ID
-        cls.password = 'cx6gke-J2x'#PSU_CECS_PASSWORD
-        #cls.private_key_password = PRIVATE_KEY_PASSWORD
+        cls.username = PSU_ID
+        cls.password = PSU_CECS_PASSWORD
+        cls.private_key_password = PRIVATE_KEY_PASSWORD
         # file name used for testing commands
         cls.test_file_name = 'SFTPTestCase_file.txt'
         # directory name/path used for testing commands
@@ -41,7 +41,7 @@ class SFTPTestCase(unittest.TestCase):
             cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}
         else:
             # by default, perform public key authentication
-            cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}#'private_key_password':cls.private_key_password}
+            cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'private_key_password':cls.private_key_password}
 
         # initialize sftp_client
         cls.sftp_client = SFTP(**cls.sftp_args)
