@@ -474,7 +474,6 @@ class MkdirCommandTestCase(SFTPTestCase):
     def test_mkdir_nested_dir(self):
         """Test mkdir command with path 'nested/dir/dir_name"""
         # Successful run of test will create nested directories in current remote directory
-        # TODO remove nested directories when finished with case
         full_path = "nested/dir_name"
         split_path = full_path.split("/")
         dir_files = self.sftp_client.ls([])
