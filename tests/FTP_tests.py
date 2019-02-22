@@ -312,7 +312,7 @@ class MkdirCommandTestCase(SFTPTestCase):
     def test_mkdir_single_dir(self):
         """Test mkdir command with path 'dirname' being created in current directory"""
         # Successful run of test will have newly created directory in current remote directory
-        # TODO remove directory when case is finished with 'rm' directory compatible  command
+        # TODO remove directory when case is finished with 'rm' directory compatible command
         dir_path = 'yes_I_want_fries_with_that'
         dir_files = self.sftp_client.ls([])
         self.assertFalse(dir_path in dir_files)
