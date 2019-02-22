@@ -2,14 +2,19 @@ import logging
 
 import paramiko
 import pysftp
-from os.path import expanduser, isfile
+import ntpath
+from os.path import expanduser, isfile, exists, join
+from os import mkdir
 from paramiko import ssh_exception
 
+DOWNLOADS_DIRECTORY = "downloads"
 
 class SFTP(object):
     def __init__(self, hostname, username, password=None, private_key_password=None):
         self.local_directory = expanduser('~')
         self.connection = initiate_connection(hostname, username, password, private_key_password)
+        if not exists(DOWNLOADS_DIRECTORY):
+            mkdir(DOWNLOADS_DIRECTORY)
 
     def is_connected(self):
         """Check the connection (using the listdir() method) to confirm that it's active."""
@@ -55,6 +60,28 @@ class SFTP(object):
                 self.connection.makedirs(args[0], mode = 775)
             else:
                 self.connection.mkdir(args[0], mode = 775)
+
+    def get(self, args):
+        """
+        Downloads a remote file to the local machine. Given a single remotepath
+        argument (arg[0]), the file is placed in the DOWNLOADS_DIRECTORY. If
+        given a remotepath argument (arg[0]) and a localpath argument (arg[1]),
+        the file is downloaded to the localpath.
+        """
+        if len(args) < 1 or len(args) > 2:
+            raise TypeError("get() takes 1 or 2 arguments (" + str(len(args)) + " given)")
+
+        # Check file exists or pysftp will create an empty file in the target directory
+        if self.connection.isfile(args[0]):
+            if len(args) is 1:
+                head, tail = ntpath.split(args[0])
+                remote_file = tail or ntpath.basename(head)
+                localpath = join(DOWNLOADS_DIRECTORY, remote_file)
+                self.connection.get(args[0], localpath)
+            elif len(args) is 2:
+                self.connection.get(args[0], expanduser(args[1]))
+        else:
+            raise IOError(f"The remote path '{args[0]}' is not a file")
 
     # endregion
 

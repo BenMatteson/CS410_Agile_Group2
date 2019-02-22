@@ -1,0 +1,3 @@
+get <remotepath> @ Download a remote file to the downloads directory
+get <remotepath> <localpath> @ Download a remote file to the specified directory
+Downloads a remote file
