@@ -287,7 +287,7 @@ class GetCommandTestCase(SFTPTestCase):
             self.sftp_client.get(["file1", "file2", "file3"])
 
 class RmdirCommandTestCase(SFTPTestCase):
-    """RmdirCommandTestCase class provides a unittest class used for testing the SFTP get command"""
+    """RmdirCommandTestCase class provides a unittest class used for testing the SFTP rmdir command"""
 
     def test_rmdir_zero_arg(self):
         """Test rmdir command with zero arguments"""
