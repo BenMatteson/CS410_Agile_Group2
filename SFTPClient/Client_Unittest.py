@@ -84,7 +84,7 @@ class Testchmod(Test_Client):
 
     def test_chmod1(self):
         # verify
-        self.assertRaises(TypeError, self.myClass.chmod, ['car', 'boat'])
+        self.assertRaises(TypeError, self.myClass.chmod, ['car', 'boat', 'train'])
 
 
 if __name__ == '__main__':
