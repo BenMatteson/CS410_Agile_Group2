@@ -36,10 +36,10 @@ class SFTP(object):
         else:
             raise TypeError('ls() takes exactly zero or one arguments (' + str(len(args)) + ' given)')
         return results
-    
+
     def chmod(self, args):
         """Change or modify permissions of directories and files on the remote server
-        
+
             Set the mode of a remotepath to mode, where mode is an integer representation
             of the octal mode to use.
         """
@@ -47,7 +47,20 @@ class SFTP(object):
             self.connection.chmod(args[0], int(args[1]))
         else:
             raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
-        
+
+    def mkdir(self, args):
+        """
+            Creates directory on remote path passed as an argument. Directories
+            are created with permissions 775.
+        """
+        if len(args) != 1:
+            raise TypeError("Usage: mkdir [dirname | path/to/dirname]")
+        else:
+            if args[0].find('/') != -1:
+                self.connection.makedirs(args[0], mode = 775)
+            else:
+                self.connection.mkdir(args[0], mode = 775)
+
     def get(self, args):
         """
         Downloads a remote file to the local machine. Given a single remotepath
@@ -57,13 +70,13 @@ class SFTP(object):
         """
         if len(args) < 1 or len(args) > 2:
             raise TypeError("get() takes 1 or 2 arguments (" + str(len(args)) + " given)")
-            
+
         # Check file exists or pysftp will create an empty file in the target directory
         if self.connection.isfile(args[0]):
             if len(args) is 1:
                 head, tail = ntpath.split(args[0])
                 remote_file = tail or ntpath.basename(head)
-                localpath = join(DOWNLOADS_DIRECTORY, remote_file) 
+                localpath = join(DOWNLOADS_DIRECTORY, remote_file)
                 self.connection.get(args[0], localpath)
             elif len(args) is 2:
                 self.connection.get(args[0], expanduser(args[1]))
