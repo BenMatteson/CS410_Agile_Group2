@@ -286,6 +286,166 @@ class GetCommandTestCase(SFTPTestCase):
         with self.assertRaises(TypeError):
             self.sftp_client.get(["file1", "file2", "file3"])
 
+class RmdirCommandTestCase(SFTPTestCase):
+    """RmdirCommandTestCase class provides a unittest class used for testing the SFTP get command"""
+
+    def test_rmdir_zero_arg(self):
+        """Test rmdir command with zero arguments"""
+        # Test the rmdir command with zero arguments to:
+        #  confirm that the test will fail with a TypeError exception
+        with self.assertRaises(TypeError):
+            self.sftp_client.rmdir([])
+
+    def test_rmdir_two_arg(self):
+        """Test rmdir command with two arguments"""
+        # Test the rmdir command with more than one argument to:
+        #  confirm that the test will fail with a TypeError exception
+        with self.assertRaises(TypeError):
+            self.sftp_client.rmdir(["dir1", "dir2"])
+
+    def test_rmdir_no_such_dir(self):
+        """Test rmdir command with a nonexistent directory"""
+        # Test the rmdir command with a non-existent argument to:
+        #  confirm that the test will fail with a TypeError exception
+        dir_name = "SFTP_this_directory_does_not_exist"
+        with self.assertRaises(TypeError):
+            self.sftp_client.rmdir([dir_name])
+
+    def test_rmdir_one_empty_dir(self):
+        """Test rmdir command with a single empty directory"""
+        # Test the rmdir command with an empty directory to:
+        #  confirm that rmdir deletes an empty directory
+        dir_name = "SFTP_test_rmdir_one_empty_dir"
+        self.sftp_client.connection.mkdir(dir_name)
+        self.assertTrue(self.sftp_client.connection.isdir(dir_name))
+        self.sftp_client.rmdir([dir_name])
+        self.assertFalse(self.sftp_client.connection.isdir(dir_name))
+
+    def test_rmdir_wrong_permissions(self):
+        """Test rmdir command with a directory withou"""
+        # Test the rmdir command with an empty directory without write permissions to:
+        #  confirm that the test will fail with a PermissionError exception
+
+        # Create a new directory with wrong permissions
+        dir_name = "SFTP_test_rmdir_wrong_permissions"
+        self.sftp_client.connection.mkdir(dir_name, 144)
+        self.assertTrue(self.sftp_client.connection.isdir(dir_name))
+
+        # Try to delete it
+        with self.assertRaises(PermissionError):
+            self.sftp_client.rmdir([dir_name])
+        self.assertTrue(self.sftp_client.connection.isdir(dir_name))
+
+        # Change the permissions and remove it
+        self.sftp_client.connection.chmod(dir_name, 744)
+        self.sftp_client.rmdir([dir_name])
+        self.assertFalse(self.sftp_client.connection.isdir(dir_name))
+
+    def test_rmdir_one_dir_one_file(self):
+        """Test rmdir command with a single directory with one file"""
+        # Test the rmdir command with a directory with a file in it to:
+        #  confirm that rmdir will delete the file and directory
+        dir_name = "SFTP_test_rmdir_one_dir_one_file"
+        file_name = "SFTP_file1"
+
+        # Create a new directory
+        self.sftp_client.connection.mkdir(dir_name)
+        self.assertTrue(self.sftp_client.connection.isdir(dir_name))
+
+        # Add a file to the directory
+        self.sftp_client.connection.execute(f"touch {dir_name}/{file_name}")
+        self.assertTrue(self.sftp_client.connection.isfile(f"{dir_name}/{file_name}"))
+
+        # Remove the directory
+        self.sftp_client.rmdir([dir_name])
+        self.assertFalse(self.sftp_client.connection.isdir(dir_name))
+
+    def test_rmdir_one_dir_multiple_files(self):
+        """Test rmdir command with a single directory with one file"""
+        # Test the rmdir command with a directory with multiple files to:
+        #  confirm that rmdir will delete all the files and the directory
+        dir_name = "SFTP_test_rmdir_one_dir_multiple_files"
+        file_names = ["SFTP_file" + str(i) for i in range(1,5)]
+
+        # Create a new directory
+        self.sftp_client.connection.mkdir(dir_name)
+        self.assertTrue(self.sftp_client.connection.isdir(dir_name))
+
+        # Add files to the directory
+        for file_name in file_names:
+            self.sftp_client.connection.execute(f"touch {dir_name}/{file_name}")
+            self.assertTrue(self.sftp_client.connection.isfile(f"{dir_name}/{file_name}"))
+
+        # Remove the directory
+        self.sftp_client.rmdir([dir_name])
+        self.assertFalse(self.sftp_client.connection.isdir(dir_name))
+
+    def test_rmdir_two_nested_dirs(self):
+        """Test rmdir command with two directories, one inside the other"""
+        # Test the rmdir command with nested directories to:
+        #  confirm that rmdir will delete both directories
+
+        # Create first directory
+        dir1 = "SFTP_test_rmdir_two_nested_dirs_dir1"
+        self.sftp_client.connection.mkdir(dir1)
+        self.assertTrue(self.sftp_client.connection.isdir(dir1))
+        
+        # Create second directory
+        dir2 = "SFTP_test_rmdir_two_nested_dirs_dir2"
+        self.sftp_client.connection.mkdir(f"{dir1}/{dir2}")
+        self.assertTrue(self.sftp_client.connection.isdir(f"{dir1}/{dir2}"))
+
+        # Remove nested directories
+        self.sftp_client.rmdir([dir1])
+        self.assertFalse(self.sftp_client.connection.isdir(dir1))
+
+    def test_rmdir_multiple_nested_dirs(self):
+        """Test rmdir command with multiple nested directories"""
+        # Test the rmdir command with multiple nested directories to:
+        #  confirm that rmdir will delete all the directories
+
+        # Create root directory
+        dir1 = "SFTP_test_rmdir_multiple_nested_dirs"
+        self.sftp_client.connection.mkdir(dir1)
+        self.assertTrue(self.sftp_client.connection.isdir(dir1))
+        
+        # Create directories inside the root
+        for i in range(1,5):
+            self.sftp_client.connection.makedirs(f"{dir1}/a/b/c/dir{i}")
+            self.assertTrue(self.sftp_client.connection.isdir(f"{dir1}/a/b/c/dir{i}"))
+
+        # Remove nested directories
+        self.sftp_client.rmdir([dir1])
+        self.assertFalse(self.sftp_client.connection.isdir(dir1))
+
+    def test_rmdir_multiple_nested_dirs_and_files(self):
+        """Test rmdir command with multiple nested directories"""
+        # Test the rmdir command with multiple nested directories and files to:
+        #  confirm that rmdir will delete all the files and directories
+
+        # Create root directory
+        dir1 = "SFTP_test_rmdir_multiple_nested_dirs_and_files"
+        self.sftp_client.connection.mkdir(dir1)
+        self.assertTrue(self.sftp_client.connection.isdir(dir1))
+        
+        # Create directories inside the root
+        for i in range(1,5):
+            self.sftp_client.connection.makedirs(f"{dir1}/a/b/c/dir{i}")
+            self.assertTrue(self.sftp_client.connection.isdir(f"{dir1}/a/b/c/dir{i}"))
+
+        # Add files to directory tree
+        dirs = []
+        self.sftp_client.connection.walktree(dir1, None, dirs.append, None)
+        for dir in reversed(dirs):
+            self.sftp_client.connection.execute(f"touch {dir}/test_file")
+            self.assertTrue(self.sftp_client.connection.isfile(f"{dir}/test_file"))
+        self.sftp_client.connection.execute(f"touch {dir1}/test_file")
+        self.assertTrue(self.sftp_client.connection.isfile(f"{dir1}/test_file"))
+
+        # Remove nested directories
+        self.sftp_client.rmdir([dir1])
+        self.assertFalse(self.sftp_client.connection.isdir(dir1))
+
 def suite():
     suite = unittest.TestSuite()
     
@@ -313,6 +473,17 @@ def suite():
     suite.addTest(GetCommandTestCase('test_get_two_arg_no_such_remote_file'))
     suite.addTest(GetCommandTestCase('test_get_two_arg_no_such_localpath'))
     suite.addTest(GetCommandTestCase('test_get_three_arg'))
+    
+    suite.addTest(RmdirCommandTestCase('test_rmdir_zero_arg'))
+    suite.addTest(RmdirCommandTestCase('test_rmdir_two_arg'))
+    suite.addTest(RmdirCommandTestCase('test_rmdir_no_such_dir'))
+    suite.addTest(RmdirCommandTestCase('test_rmdir_one_empty_dir'))
+    suite.addTest(RmdirCommandTestCase('test_rmdir_wrong_permissions'))
+    suite.addTest(RmdirCommandTestCase('test_rmdir_one_dir_one_file'))
+    suite.addTest(RmdirCommandTestCase('test_rmdir_one_dir_multiple_files'))
+    suite.addTest(RmdirCommandTestCase('test_rmdir_two_nested_dirs'))
+    suite.addTest(RmdirCommandTestCase('test_rmdir_multiple_nested_dirs'))
+    suite.addTest(RmdirCommandTestCase('test_rmdir_multiple_nested_dirs_and_files'))
     
     return suite
 
