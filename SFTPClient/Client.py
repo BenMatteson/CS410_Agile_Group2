@@ -1,12 +1,11 @@
-# Client.py
 import logging
 import paramiko
 import pysftp
 import ntpath
+import os
 from os.path import expanduser, isfile, exists, join
 from os import mkdir
 
-# import os
 from paramiko import ssh_exception
 
 DOWNLOADS_DIRECTORY = "downloads"
@@ -20,7 +19,7 @@ class SFTP(object):
         if not exists(DOWNLOADS_DIRECTORY):
             mkdir(DOWNLOADS_DIRECTORY)
         self.local_directory = expanduser('~')
-        self.connection = initiate_connection(hostname, username, password, private_key_password)
+        self.connection = self.initiate_connection()
 
     def is_connected(self):
         """Check the connection (using the listdir() method) to confirm that it's active."""

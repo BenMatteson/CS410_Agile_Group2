@@ -1,21 +1,15 @@
 #!/usr/bin/env python3
-import os
 import sys
 from os import path, remove, rmdir
 import unittest
-from unittest import main
-from unittest.mock import Mock, MagicMock, patch
 
 import warnings
 import argparse
-
-from unittest.mock import Mock, MagicMock, patch
 
 # fix for running as script?
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from SFTPClient.Client import SFTP
 from SFTPClient.Client import DOWNLOADS_DIRECTORY
-import SFTPClient
 from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
 
 
@@ -230,6 +224,7 @@ class ChmodCommandTestCase(SFTPTestCase):
         self.assertIsInstance(result, list)
         self.assertTrue(len(result) is 0)
 
+
 class GetCommandTestCase(SFTPTestCase):
     """GetCommandTestCase class provides a unittest class used for testing the SFTP get command"""
 
@@ -306,7 +301,7 @@ class GetCommandTestCase(SFTPTestCase):
             self.sftp_client.get(["file1", "file2", "file3"])
 
 class MkdirCommandTestCase(SFTPTestCase):
-    """MkdirCommandTestCase class provides a unittest calss used for testing the SFTP mkdir command"""
+    """MkdirCommandTestCase class provides a unittest class used for testing the SFTP mkdir command"""
 
     def test_mkdir_zero_arg(self):
         """Test mkdir command with zero arguments"""
@@ -317,7 +312,7 @@ class MkdirCommandTestCase(SFTPTestCase):
     def test_mkdir_single_dir(self):
         """Test mkdir command with path 'dirname' being created in current directory"""
         # Successful run of test will have newly created directory in current remote directory
-        # TODO remove directory when case is finished with 'rm' directory compatibal command
+        # TODO remove directory when case is finished with 'rm' directory compatible  command
         dir_path = 'yes_I_want_fries_with_that'
         dir_files = self.sftp_client.ls([])
         self.assertFalse(dir_path in dir_files)
@@ -338,54 +333,19 @@ class MkdirCommandTestCase(SFTPTestCase):
         self.assertIn(split_path[1], dir_files)
 
 
-# TODO these unit tests can't be run alongside the non-mocked tests, should find a home for them
-class PutUinitTests(SFTPTestCase):
-    def setUp(self):
-        SFTPClient.Client.initiate_connection = MagicMock()
-        self.sftp = SFTP('testhost', 'testuser', 'testpass', 'test_priv_key_pass')
-        SFTPClient.Client.initiate_connection.assert_called_once_with('testhost', 'testuser', 'testpass', 'test_priv_key_pass')
-        SFTP.connection = MagicMock()
-        SFTP.connection.put = MagicMock()
-        SFTPClient.Client.os.path.isfile = MagicMock(return_value=False)
-        SFTPClient.Client.os.path.isdir = MagicMock(return_value=False)
-
-    def tearDown(self):
-        pass
-
+class PutCommandTestCase(SFTPTestCase):
     def test_put_file_not_found(self):
-        with self.assertRaises(FileNotFoundError):
-            self.sftp.put(['test.file'])
-
-    def test_put_dir_not_found(self):
-        with self.assertRaises(FileNotFoundError):
-            self.sftp.put(['test_dir'])
-
-    def test_put_dir_recursive_not_found(self):
-        with self.assertRaises(FileNotFoundError):
-            self.sftp.put(['-r', 'test_dir'])
-
-    def test_put_file(self):
-        SFTPClient.Client.os.path.isfile.return_value = True
-        self.sftp.put(['test.file'])
-        self.sftp.connection.put.assert_called_once_with('test.file', preserve_mtime=True)
-
-    def test_put_dir(self):
-        SFTPClient.Client.os.path.isdir.return_value = True
-        self.sftp.put(['test_dir'])
-        self.sftp.connection.put_d.assert_called_once_with('test_dir', 'test_dir', preserve_mtime=True)
-
-    def test_put_dir_recursive(self):
-        SFTPClient.Client.os.path.isdir.return_value = True
-        self.sftp.put(['-r', 'test_dir'])
-        self.sftp.connection.put_r.assert_called_once_with('test_dir', 'test_dir', preserve_mtime=True)
-
-
-class PutTest(SFTPTestCase):
-    def test_put_file_not_found(self):
+        """Test put when called on a non-existant file/folder"""
         with self.assertRaises(FileNotFoundError):
             self.sftp_client.put(['0xdeadbeef'])
 
-    def test_put_file_actual(self):
+    def test_put_file_not_found_r(self):
+        """Test put when called on a non-existant file/folder using -r flag"""
+        with self.assertRaises(FileNotFoundError):
+            self.sftp_client.put(['-r', '0xdeadbeef'])
+
+    def test_put_file(self):
+        """Test putting a file"""
         self.sftp_client.put([self.test_file_name])
         result = self.sftp_client.ls([])
         self.assertIn(self.test_file_name, result)
@@ -395,17 +355,11 @@ def suite():
     suite = unittest.TestSuite()
 
     suite.addTest(PlaintextAuthenticationTestCase('test_plaintext_auth'))
-
     suite.addTest(PublicKeyAuthenticationTestCase('test_public_key_auth'))
 
-    # suite.addTest(PutUinitTests('test_put_file_not_found'))
-    # suite.addTest(PutUinitTests('test_put_dir_not_found'))
-    # suite.addTest(PutUinitTests('test_put_dir_recursive_not_found'))
-    # suite.addTest(PutUinitTests('test_put_file'))
-    # suite.addTest(PutUinitTests('test_put_dir'))
-    # suite.addTest(PutUinitTests('test_put_dir_recursive'))
-    suite.addTest(PutTest('test_put_file_not_found'))
-    suite.addTest(PutTest('test_put_file_actual'))
+    suite.addTest(PutCommandTestCase('test_put_file_not_found'))
+    suite.addTest(PutCommandTestCase('test_put_file_not_found_r'))
+    suite.addTest(PutCommandTestCase('test_put_file'))
 
     suite.addTest(ListCommandTestCase('test_list_file'))
     suite.addTest(ListCommandTestCase('test_list_nonexistent'))
@@ -423,7 +377,6 @@ def suite():
     suite.addTest(MkdirCommandTestCase('test_mkdir_zero_arg'))
     suite.addTest(MkdirCommandTestCase('test_mkdir_single_dir'))
     suite.addTest(MkdirCommandTestCase('test_mkdir_nested_dir'))
-
 
     suite.addTest(GetCommandTestCase('test_get_zero_arg'))
     suite.addTest(GetCommandTestCase('test_get_one_arg'))
