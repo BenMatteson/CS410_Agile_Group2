@@ -176,32 +176,73 @@ class SFTP(object):
                 raise FileNotFoundError("couldn't find the requested file")
 
     def cp(self, args):
-        """Copy a remote directory from src to dst"""
+        """Copy a remote directory from src to dst
+        
+            This version of the cp command performs an extremely inefficient copy, by
+            first doing a get of the remote directory into a local temporary directory,
+            and then doing a put of that directory back onto the remote server.
+            
+            This is a pure (S)FTP solution, which means that it does not require the ability to perform
+            remote shell execution).
+        """
         if len(args) is 2:
-            if not self.connection.exists(args[1]):
-                try:
-                    tmp_d = tempfile.gettempdir()
-                    local_d = os.path.join(tmp_d, basename(args[0]))
-                    remote_d = args[1]
-                    logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
-                    logging.debug('Creating directory at: ' + tmp_d)
-                    os.mkdir(local_d)
-                    logging.debug('Starting get...')
-                    self.connection.get_r(args[0], local_d, preserve_mtime=True)
-                    logging.debug('Copied ' + basename(args[0]) + ' to ' + local_d)
-                    logging.debug('Creating new directory at: ' + remote_d)
-                    self.connection.mkdir(args[1])
-                    logging.debug('Starting put...')
-                    self.connection.put_r(local_d, remote_d, preserve_mtime=True)
-                except Exception as e:
-                    raise(e)
-                finally:
-                    logging.debug('Starting cleanup...')
-                    shutil.rmtree(local_d)
+            if self.connection.exists(args[0]):
+                if not self.connection.exists(args[1]):
+                    try:
+                        # setup local vars
+                        tmp_d = tempfile.gettempdir()
+                        local_d = os.path.join(tmp_d, basename(args[0]))
+                        remote_d = args[1]
+                        logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
+                        
+                        # create a temporary directory to use for copying the contents of the remote dir
+                        # apparently put_r requires this?
+                        logging.debug('Creating directory at: ' + tmp_d)
+                        os.mkdir(local_d)
+                        
+                        # get the contents of the remote directory into the temporary folder
+                        logging.debug('Starting get...')
+                        self.connection.get_r(args[0], local_d, preserve_mtime=True)
+                        logging.debug('Copied ' + basename(args[0]) + ' to ' + local_d)
+                        
+                        # create a new directory on the remote server (put_r requires this?)
+                        logging.debug('Creating new directory at: ' + remote_d)
+                        self.connection.mkdir(args[1])
+                        
+                        # put the contents ofthe temporary
+                        logging.debug('Starting put...')
+                        self.connection.put_r(local_d, remote_d, preserve_mtime=True)
+                    except Exception as e:
+                        raise(e)
+                    finally:
+                        # cleanup the local temporary directory
+                        logging.debug('Starting cleanup...')
+                        shutil.rmtree(local_d)
+                else:
+                   raise IOError('cp: ' + args[1] + ': Destination directory already exists')
             else:
-               raise IOError('mkdir: ' + args[1] + ': File exists')
+               raise IOError('cp: ' + args[0] + ': No such file or directory')
         else:
             raise TypeError('cp() takes exactly two arguments (' + str(len(args)) + ' given)')
+
+    def cp_r(self, args):
+        """Copy a remote directory from src to dst via remote command execution
+        
+            This is the most efficient way to copy remote directories, but may
+            require the ability to perform remote shell commands (i.e., it may
+            not be compatible with chrooted SFTP sessions or (S)FTP servers running
+            on a non-POSIX OS.
+        """
+        if len(args) is 2:
+            if self.connection.exists(args[0]):
+                if not self.connection.exists(args[1]):
+                    self.connection.execute('cp -Rp ' + args[0] + ' ' + args[1])
+                else:
+                   raise IOError('cp_r: ' + args[1] + ': File exists')
+            else:
+               raise IOError('cp_r: ' + args[0] + ': No such file or directory')
+        else:
+            raise TypeError('cp_r() takes exactly two arguments (' + str(len(args)) + ' given)')
     # endregion
 
     def lsl(self):
