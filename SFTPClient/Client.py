@@ -1,5 +1,5 @@
 import logging
-
+import os
 import paramiko
 import pysftp
 import ntpath
@@ -87,11 +87,24 @@ class SFTP(object):
 
     # endregion
 
-    def __del__(self):
+    def loggout(self):
+        '''It does disconnect the client to the server, and save the connection information to a file upon the user
+        request'''
         try:
             self.connection.close()
+            print("Server - Client connection terminated")
         except Exception:
             pass
+
+    def listAllLocal(self):
+        '''It does list all files and directories in your local machine. It will start with local folder where the
+         script exist'''
+        currentDirectoryPath = os.getcwd()
+        filesInCurrentDirectory = os.listdir(os.getcwd())
+        print("Your current directory path is: {} \n".format(currentDirectoryPath))
+        print("Files and Directories in the current folder are:\n")
+        for fileName in filesInCurrentDirectory:
+            print(fileName)
 
     def initiate_connection(self):
         # Connect, checking hostkey or caching on first connect

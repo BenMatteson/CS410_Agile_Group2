@@ -87,5 +87,34 @@ class Testchmod(Test_Client):
         self.assertRaises(TypeError, self.myClass.chmod, ['car', 'boat', 'train'])
 
 
+@patch("builtins.print", autospec=True)
+class Testloggout(Test_Client):
+    def test_loggout(self, mochprint):
+        # actual
+        self.myClass.loggout()
+        # verify
+        self.myClass.connection.close.assert_called_once_with()
+        mochprint.assert_called_once_with("Server - Client connection terminated")
+
+
+@patch("SFTPClient.Client.os.getcwd", autospec=True)
+@patch("builtins.print", autospec=True)
+@patch("SFTPClient.Client.os.listdir", autospec=True)
+class TestlistAllLocal(Test_Client):
+    def test_listAllLocal(self, mocklistdir, mockprint, mockgetcwd):
+        # setup
+        mockgetcwd.return_value = "/Users/myCurrentDirectory"
+        mocklistdir.side_effect = iter(["file1"])
+        # actual
+        self.myClass.listAllLocal()
+        # verify
+        printCalls = [call("Your current directory path is: /Users/myCurrentDirectory \n"),
+                      call("Files and Directories in the current folder are:\n"),
+                      call("f"), call("i"), call("l"), call("e"), call("1")]
+        mockprint.assert_has_calls(printCalls)
+
+
+
+
 if __name__ == '__main__':
     unittest.main()
