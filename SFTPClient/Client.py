@@ -11,20 +11,22 @@ DOWNLOADS_DIRECTORY = "downloads"
 
 class SFTP(object):
     def __init__(self, hostname, username, password=None, private_key_password=None):
+        self.hostname = hostname
+        self.username = username
+        self.password = password
+        self.private_key_password = private_key_password
         self.local_directory = expanduser('~')
-        self.connection = initiate_connection(hostname, username, password, private_key_password)
         if not exists(DOWNLOADS_DIRECTORY):
             mkdir(DOWNLOADS_DIRECTORY)
+        self.connection = self.initiate_connection()
 
     def is_connected(self):
         """Check the connection (using the listdir() method) to confirm that it's active."""
-        if self.connection.listdir():
-            return True
+        return True if self.connection.listdir() else False
 
     # region Commands Section
-    def ping(self, _args):
-        if self.connection.listdir():
-            return 'pong'
+    def ping(self):
+        return "pong" if self.connection.listdir() else "nothing happened"
 
     def ls(self, args):
         """List directory contents on the remote server"""
@@ -60,6 +62,19 @@ class SFTP(object):
             else:
                 raise TypeError("Usage: rm [filename | path/to/filename]")
 
+    def mkdir(self, args):
+        """
+            Creates directory on remote path passed as an argument. Directories
+            are created with permissions 775.
+        """
+        if len(args) != 1:
+            raise TypeError("Usage: mkdir [dirname | path/to/dirname]")
+        else:
+            if args[0].find('/') != -1:
+                self.connection.makedirs(args[0], mode = 775)
+            else:
+                self.connection.mkdir(args[0], mode = 775)
+
     def get(self, args):
         """
         Downloads a remote file to the local machine. Given a single remotepath
@@ -81,7 +96,6 @@ class SFTP(object):
                 self.connection.get(args[0], expanduser(args[1]))
         else:
             raise IOError(f"The remote path '{args[0]}' is not a file")
-
     # endregion
 
     def __del__(self):
@@ -90,55 +104,54 @@ class SFTP(object):
         except Exception:
             pass
 
-
-def initiate_connection(hostname, username, password=None, private_key_password=None):
-    # Connect, checking hostkey or caching on first connect
-    # Based off of this stackoverflow question:
-    #     https://stackoverflow.com/questions/53666106/use-paramiko-autoaddpolicy-with-pysftp
-
-    # configure pysftp CnOpts
-    hostkeys = None
-    cnopts = pysftp.CnOpts()  # loads hostkeys from known_hosts.ssh
-    if cnopts.hostkeys.lookup(hostname) is None:
-        logging.debug('Key for host: ' + hostname + ' was not found in known_hosts')
-        hostkeys = cnopts.hostkeys
-        cnopts.hostkeys = None
-
-    args = {'host': hostname,
-            'username': username,
-            'cnopts': cnopts}
-
-    # Determine what type of authentication to use based on parameters provided
-    ssh_key = expanduser('~') + '/.ssh/id_rsa'
-    if password is not None:
-        logging.debug('Using plaintext authentication')
-        args['password'] = password
-    elif isfile(ssh_key):
-        logging.debug('Got SSH key: ' + ssh_key)
-        # the file at ~/.ssh/id_rsa exists - use it as the (default) private key
-        args['private_key'] = ssh_key
-        if private_key_password is not None:
-            logging.debug('Using public key authentication with DER-encoded private key')
-            args['private_key_pass'] = private_key_password
+    def initiate_connection(self):
+        # Connect, checking hostkey or caching on first connect
+        # Based off of this stackoverflow question:
+        #     https://stackoverflow.com/questions/53666106/use-paramiko-autoaddpolicy-with-pysftp
+    
+        # configure pysftp CnOpts
+        hostkeys = None
+        cnopts = pysftp.CnOpts()  # loads hostkeys from known_hosts.ssh
+        if cnopts.hostkeys.lookup(self.hostname) is None:
+            logging.debug('Key for host: ' + self.hostname + ' was not found in known_hosts')
+            hostkeys = cnopts.hostkeys
+            cnopts.hostkeys = None
+    
+        args = {'host': self.hostname,
+                'username': self.username,
+                'cnopts': cnopts}
+    
+        # Determine what type of authentication to use based on parameters provided
+        ssh_key = expanduser('~') + '/.ssh/id_rsa'
+        if self.password is not None:
+            logging.debug('Using plaintext authentication')
+            args['password'] = self.password
+        elif isfile(ssh_key):
+            logging.debug('Got SSH key: ' + ssh_key)
+            # the file at ~/.ssh/id_rsa exists - use it as the (default) private key
+            args['private_key'] = ssh_key
+            if self.private_key_password is not None:
+                logging.debug('Using public key authentication with DER-encoded private key')
+                args['private_key_pass'] = self.private_key_password
+            else:
+                logging.debug('Using public key authentication with plaintext private key')
         else:
-            logging.debug('Using public key authentication with plaintext private key')
-    else:
-        raise ssh_exception.BadAuthenticationType('No supported authentication methods available',
-                                                  ['password', 'public_key'])
-
-    # connect using the authentication type determined above
-    logging.debug('Connecting using arguments: ' + str(args))
-    try:
-        connection = pysftp.Connection(**args)
-    except paramiko.SSHException as e:
-        logging.critical(e)
-        raise
-
-    # On first connect, Save the new hostkey to known_hosts
-    if hostkeys is not None:
-        logging.debug('Appending new hostkey for ' + hostname + ' to known_hosts, and writing to disk...')
-        hostkeys.add(hostname, connection.remote_server_key.get_name(),
-                     connection.remote_server_key)
-        hostkeys.save(pysftp.helpers.known_hosts())
-
-    return connection
+            raise ssh_exception.BadAuthenticationType('No supported authentication methods available',
+                                                      ['password', 'public_key'])
+    
+        # connect using the authentication type determined above
+        logging.debug('Connecting using arguments: ' + str(args))
+        try:
+            connection = pysftp.Connection(**args)
+        except paramiko.SSHException as e:
+            logging.critical(e)
+            raise
+    
+        # On first connect, Save the new hostkey to known_hosts
+        if hostkeys is not None:
+            logging.debug('Appending new hostkey for ' + self.hostname + ' to known_hosts, and writing to disk...')
+            hostkeys.add(self.hostname, connection.remote_server_key.get_name(),
+                         connection.remote_server_key)
+            hostkeys.save(pysftp.helpers.known_hosts())
+    
+        return connection

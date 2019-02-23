@@ -318,6 +318,37 @@ class RmCommandTestCase(SFTPTestCase):
         with self.assertRaises(TypeError):
             self.sftp_client.rm(filepath)
 
+class MkdirCommandTestCase(SFTPTestCase):
+    """MkdirCommandTestCase class provides a unittest calss used for testing the SFTP mkdir command"""
+
+    def test_mkdir_zero_arg(self):
+        """Test mkdir command with zero arguments"""
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.mkdir([])
+
+    def test_mkdir_single_dir(self):
+        """Test mkdir command with path 'dirname' being created in current directory"""
+        # Successful run of test will have newly created directory in current remote directory
+        # TODO remove directory when case is finished with 'rm' directory compatibal command
+        dir_path = 'yes_I_want_fries_with_that'
+        dir_files = self.sftp_client.ls([])
+        self.assertFalse(dir_path in dir_files)
+        self.sftp_client.mkdir([dir_path])
+        dir_files = self.sftp_client.ls([])
+        self.assertTrue(dir_path in dir_files)
+
+    def test_mkdir_nested_dir(self):
+        """Test mkdir command with path 'nested/dir/dir_name"""
+        # Successful run of test will create nested directories in current remote directory
+        # TODO remove nested directories when finished with case
+        full_path = "nested/dir_name"
+        split_path = full_path.split("/")
+        dir_files = self.sftp_client.ls([])
+        self.assertFalse(split_path[0] in dir_files)
+        self.sftp_client.mkdir([full_path])
+        dir_files = self.sftp_client.ls([split_path[0]])
+        self.assertIn(split_path[1], dir_files)
 
 
 def suite():
@@ -343,6 +374,10 @@ def suite():
     suite.addTest(RmCommandTestCase('test_rm_zero_arg'))
     #suite.addTest(RmCommandTestCase('test_rm_file_exists')) # see TODO
     suite.addTest(RmCommandTestCase('test_rm_file_nonexistent'))
+
+    suite.addTest(MkdirCommandTestCase('test_mkdir_zero_arg'))
+    suite.addTest(MkdirCommandTestCase('test_mkdir_single_dir'))
+    suite.addTest(MkdirCommandTestCase('test_mkdir_nested_dir'))
 
     suite.addTest(GetCommandTestCase('test_get_zero_arg'))
     suite.addTest(GetCommandTestCase('test_get_one_arg'))

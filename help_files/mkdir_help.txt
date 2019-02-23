@@ -1,0 +1,3 @@
+mkdir @ Create remote directory
+mkdir <path | path/to/dir> @ Creates remote directory
+Creates remote directory
