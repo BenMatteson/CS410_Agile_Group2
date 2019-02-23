@@ -449,6 +449,39 @@ class RmdirCommandTestCase(SFTPTestCase):
         self.assertFalse(self.sftp_client.connection.isdir(dir1))
 
 
+class RmCommandTestCase(SFTPTestCase):
+    """RmCommandTestCase class provides a unittest class used for the rm command"""
+
+    def test_rm_zero_arg(self):
+        """Test rm command with zero arguments"""
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.rm([])
+
+    def test_rm_file_exists(self):
+        """Test rm command with file 'filepath' being removed from current directory"""
+        # Successful run of test will remove 'filepath' from current working directory
+        # TODO test implementation after the sftp.put command has been implemented
+        filepath = self.test_file_name
+        dir_files = self.sftp_client.ls([])
+        self.assertFalse(filepath in dir_files)
+        self.sftp_client.put(filepath)
+        dir_files = self.sftp_client.ls([])
+        self.assertTrue(filepath in dir_files)
+        self.sftp_client.rm(filepath)
+        dir_files = self.sftp_client.ls([])
+        self.assertFalse(filepath in dir_files)
+
+    def test_rm_file_nonexistent(self):
+        """Test rm command against a file that does not exist in the remote path"""
+        # Successful run of test will return an TypeError
+        dir_files = self.sftp_client.ls([])
+        filepath = self.test_file_name
+        self.assertFalse(filepath in dir_files)
+        with self.assertRaises(TypeError):
+            self.sftp_client.rm(filepath)
+
+
 class MkdirCommandTestCase(SFTPTestCase):
     """MkdirCommandTestCase class provides a unittest calss used for testing the SFTP mkdir command"""
 
@@ -505,6 +538,10 @@ def suite():
     suite.addTest(ChmodCommandTestCase('test_chmod_invalid_mode'))
     suite.addTest(ChmodCommandTestCase('test_chmod_mode_000'))
     suite.addTest(ChmodCommandTestCase('test_chmod_mode_755'))
+
+    suite.addTest(RmCommandTestCase('test_rm_zero_arg'))
+    #suite.addTest(RmCommandTestCase('test_rm_file_exists')) # see TODO
+    suite.addTest(RmCommandTestCase('test_rm_file_nonexistent'))
 
     suite.addTest(MkdirCommandTestCase('test_mkdir_zero_arg'))
     suite.addTest(MkdirCommandTestCase('test_mkdir_single_dir'))
