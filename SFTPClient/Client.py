@@ -1,5 +1,5 @@
 import logging
-
+import os
 import paramiko
 import pysftp
 import ntpath
@@ -8,6 +8,7 @@ from os import mkdir
 from paramiko import ssh_exception
 
 DOWNLOADS_DIRECTORY = "downloads"
+
 
 class SFTP(object):
     def __init__(self, hostname, username, password=None, private_key_password=None):
@@ -87,9 +88,20 @@ class SFTP(object):
 
     # endregion
 
-    def __del__(self):
+    def listAllLocal(self):
+        '''It does list all files and directories in your local machine. It will start with local folder where the
+         script exist, and will expand upon the user request to display everything of (~) in MAC OS'''
+        currentDirectoryPath = os.getcwd()
+        filesInCurrentDirectory = os.listdir(os.getcwd())
+        print("Your current directory path is: {} \n".format(currentDirectoryPath))
+        print("Files and Directories in the current folder are:\n")
+        for fileName in filesInCurrentDirectory:
+            print(fileName)
+
+    def loggout(self):
         try:
             self.connection.close()
+            print("Server - Client connections terminated")
         except Exception:
             pass
 
