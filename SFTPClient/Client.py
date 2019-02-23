@@ -50,6 +50,18 @@ class SFTP(object):
         else:
             raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
 
+    def rm(self, args):
+        """
+            Remove file from remote path given by argument. Arg may include path ('/').
+        """
+        if len(args) != 1:
+            raise TypeError("Usage: rm [filename | path/to/filename]")
+        else:
+            if self.connection.isfile(args[0]):
+                self.connection.remove(args[0])
+            else:
+                raise TypeError("Usage: rm [filename | path/to/filename]")
+
     def mkdir(self, args):
         """
             Creates directory on remote path passed as an argument. Directories
@@ -84,7 +96,6 @@ class SFTP(object):
                 self.connection.get(args[0], expanduser(args[1]))
         else:
             raise IOError(f"The remote path '{args[0]}' is not a file")
-
     # endregion
 
     def __del__(self):
