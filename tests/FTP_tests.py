@@ -5,6 +5,8 @@ import shutil
 import unittest
 import warnings
 import argparse
+from paramiko import SFTPAttributes
+from stat import *
 
 # fix for running as script?
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -624,6 +626,160 @@ class HistoryCommandTestCase(SFTPTestCase):
         command_history = self.sftp_client.history([])
         self.assertEqual(command_history, file_text.strip()) 
 
+class CopyCommandTestCase(SFTPTestCase):
+    """CopyCommandTestCase class provides a unittest class used for testing the SFTP cp command"""
+    def setUp(self):
+        self.sftp_client.connection.execute('mkdir ' + self.test_dir_name)
+    
+    def tearDown(self):
+        self.sftp_client.connection.execute('rm -r "' + self.test_dir_name)
+        self.sftp_client.connection.execute('rm -r "' + self.test_dir_name + '-copy"')
+    
+    def test_copy_zero_arg(self):
+        """Test cp command with zero arguments"""
+        # Test the cp command with zero arguments to:
+        #  confirm that the test will fail with a TypeError exception
+        with self.assertRaises(TypeError):
+            self.sftp_client.cp([])
+
+    def test_copy_one_arg(self):
+        """Test cp command with one argument"""
+        # Test the cp command with one argument to:
+        #  confirm that the test will fail with a TypeError exception
+        with self.assertRaises(TypeError):
+            self.sftp_client.cp(['0xdeadbeef'])
+    
+    def test_copy_three_arg(self):
+        """Test cp command with three arguments"""
+        # Test the cp command with three arguments to:
+        #  confirm that the test will fail with a TypeError exception
+        with self.assertRaises(TypeError):
+            self.sftp_client.cp(['0xdeadbeef', '0xdeadbeef', '0xdeadbeef'])
+
+    def test_copy_invalid_src(self):
+        """Test cp command with an invalid src argument"""
+        # Test the cp command with an invalid src argument to:
+        #  confirm that the test will fail with a IOError exception
+        with self.assertRaises(IOError):
+            self.sftp_client.cp(['0xdeadbeef', '0xdeadbeef'])
+
+    def test_copy_invalid_dst(self):
+        """Test cp command with an invalid dst argument"""
+        # Test the cp command with an invalid dst argument (an existing dir) to:
+        #  confirm that the src directory exists;
+        #  confirm that the test will fail with a IOError exception
+        #
+        # TODO: this test should be run after creating 'self.test_dir_name' using the 'mkdir' command
+        #   That way, we'd be guaranteed to have the directory exist prior to running
+        #   In the interim, you will need to create this directory manually to allow the test to pass.
+        self.assertTrue(self.sftp_client.connection.exists(self.test_dir_name))
+        with self.assertRaises(IOError):
+            self.sftp_client.cp([self.test_dir_name, self.test_dir_name])
+
+    def test_copy_valid_src(self):
+        """Test cp command with valid src and dst arguments"""
+        # Test the cp command with valid src and dst arguments to:
+        #  confirm that the src directory exists;
+        #  confirm that the dst directory does not exist;
+        #  confirm that the copy operation will complete without exception;
+        #  confirm that the contents of dst match src
+        
+        # confirm that src_dir exists, and is a directory
+        result = self.sftp_client.connection.stat(self.test_dir_name)
+        self.assertIsInstance(result, SFTPAttributes)
+        self.assertTrue(S_ISDIR(result.st_mode))
+        
+        # confirm that the destination directory doesn't exist
+        dst_d = self.test_dir_name + '-copy'
+        self.assertFalse(self.sftp_client.connection.exists(dst_d))
+        
+        # perform the copy
+        result = self.sftp_client.cp([self.test_dir_name, dst_d])
+        self.assertIsNone(result)
+        
+        # confirm that the copy now exists
+        self.assertTrue(self.sftp_client.connection.exists(dst_d))
+
+        # TODO: walk the dst_dir tree and use something like exists() to:
+        #  confirm that this is a copy of src_dir
+
+class CopyRCommandTestCase(SFTPTestCase):
+    """CopyRCommandTestCase class provides a unittest class used for testing the SFTP cp_r command"""
+    def setUp(self):
+        self.sftp_client.connection.execute('mkdir ' + self.test_dir_name)
+    
+    def tearDown(self):
+        self.sftp_client.connection.execute('rm -r "' + self.test_dir_name)
+        self.sftp_client.connection.execute('rm -r "' + self.test_dir_name + '-copy"')
+    
+    def test_copy_r_zero_arg(self):
+        """Test cp_r command with zero arguments"""
+        # Test the cp_r command with zero arguments to:
+        #  confirm that the test will fail with a TypeError exception
+        with self.assertRaises(TypeError):
+            self.sftp_client.cp_r([])
+
+    def test_copy_r_one_arg(self):
+        """Test cp_r command with one argument"""
+        # Test the cp_r command with one argument to:
+        #  confirm that the test will fail with a TypeError exception
+        with self.assertRaises(TypeError):
+            self.sftp_client.cp_r(['0xdeadbeef'])
+    
+    def test_copy_r_three_arg(self):
+        """Test cp_r command with three arguments"""
+        # Test the cp_r command with three arguments to:
+        #  confirm that the test will fail with a TypeError exception
+        with self.assertRaises(TypeError):
+            self.sftp_client.cp_r(['0xdeadbeef', '0xdeadbeef', '0xdeadbeef'])
+
+    def test_copy_r_invalid_src(self):
+        """Test cp_r command with an invalid src argument"""
+        # Test the cp_r command with an invalid src argument to:
+        #  confirm that the test will fail with a IOError exception
+        with self.assertRaises(IOError):
+            self.sftp_client.cp_r(['0xdeadbeef', '0xdeadbeef'])
+
+    def test_copy_r_invalid_dst(self):
+        """Test cp_r command with an invalid dst argument"""
+        # Test the cp_r command with an invalid dst argument (an existing dir) to:
+        #  confirm that the src directory exists;
+        #  confirm that the test will fail with a IOError exception
+        #
+        # TODO: this test should be run after creating 'self.test_dir_name' using the 'mkdir' command
+        #   That way, we'd be guaranteed to have the directory exist prior to running
+        #   In the interim, you will need to create this directory manually to allow the test to pass.
+        self.assertTrue(self.sftp_client.connection.exists(self.test_dir_name))
+        with self.assertRaises(IOError):
+            self.sftp_client.cp_r([self.test_dir_name, self.test_dir_name])
+
+    def test_copy_r_valid_src(self):
+        """Test cp_r command with valid src and dst arguments"""
+        # Test the cp_r command with valid src and dst arguments to:
+        #  confirm that the src directory exists;
+        #  confirm that the dst directory does not exist;
+        #  confirm that the copy operation will complete without exception;
+        #  confirm that the contents of dst match src
+        
+        # confirm that src_dir exists, and is a directory
+        result = self.sftp_client.connection.stat(self.test_dir_name)
+        self.assertIsInstance(result, SFTPAttributes)
+        self.assertTrue(S_ISDIR(result.st_mode))
+        
+        # confirm that the destination directory doesn't exist
+        dst_d = self.test_dir_name + '-copy'
+        self.assertFalse(self.sftp_client.connection.exists(dst_d))
+        
+        # perform the copy
+        result = self.sftp_client.cp_r([self.test_dir_name, dst_d])
+        self.assertIsNone(result)
+        
+        # confirm that the copy now exists
+        self.assertTrue(self.sftp_client.connection.exists(dst_d))
+
+        # TODO: walk the dst_dir tree and use something like exists() to:
+        #  confirm that this is a copy of src_dir
+
 
 class PutCommandTestCase(SFTPTestCase):
     def test_put_file_not_found(self):
@@ -713,6 +869,20 @@ def suite():
     suite.addTest(HistoryCommandTestCase('test_history_ls_one_arg'))
     suite.addTest(HistoryCommandTestCase('test_history_multiple_commands'))
 
+    suite.addTest(CopyCommandTestCase('test_copy_zero_arg'))
+    suite.addTest(CopyCommandTestCase('test_copy_one_arg'))
+    suite.addTest(CopyCommandTestCase('test_copy_three_arg'))
+    suite.addTest(CopyCommandTestCase('test_copy_invalid_src'))
+    suite.addTest(CopyCommandTestCase('test_copy_invalid_dst'))
+    suite.addTest(CopyCommandTestCase('test_copy_valid_src'))
+
+    suite.addTest(CopyRCommandTestCase('test_copy_r_zero_arg'))
+    suite.addTest(CopyRCommandTestCase('test_copy_r_one_arg'))
+    suite.addTest(CopyRCommandTestCase('test_copy_r_three_arg'))
+    suite.addTest(CopyRCommandTestCase('test_copy_r_invalid_src'))
+    suite.addTest(CopyRCommandTestCase('test_copy_r_invalid_dst'))
+    suite.addTest(CopyRCommandTestCase('test_copy_r_valid_src'))
+    
     return suite
 
 
