@@ -62,20 +62,6 @@ class PlaintextAuthenticationTestCase(SFTPTestCase):
         self.assertIsInstance(self.sftp_client, SFTP)
         self.assertTrue(self.sftp_client.is_connected())
 
-        hostname = 'linuxlab.cs.pdx.edu'
-        username = PSU_ID
-        password = PSU_CECS_PASSWORD
-        args = {'hostname': hostname, 'username': username, 'password': password}
-        self.sftp_client = SFTP(**args)
-        self.assertTrue(self.sftp_client.is_connected())
-
-    def test_private_key_auth(self):
-        hostname = 'linuxlab.cs.pdx.edu'
-        username = PSU_ID
-        private_key_password = PRIVATE_KEY_PASSWORD
-        args = {'hostname': hostname, 'username': username, 'private_key_password': private_key_password}
-        self.sftp_client = SFTP(**args)
-
 
 class PublicKeyAuthenticationTestCase(SFTPTestCase):
     """PublicKeyAuthenticationTestCase provides a unittest class used for testing publickey SFTP auth"""

@@ -85,7 +85,8 @@ class SFTP(object):
                 self.connection.get(args[0], expanduser(args[1]))
         else:
             raise IOError(f"The remote path '{args[0]}' is not a file")
-    def put(self, args):
+
+    def put(self, args, put_dirs=True):
         recursive = False
         if len(args) > 1 and args[0] == '-r':
             recursive = True
@@ -93,11 +94,21 @@ class SFTP(object):
         for arg in args:
             if os.path.isfile(arg):
                 self.connection.put(arg, preserve_mtime=True)
+
             elif os.path.isdir(arg):
-                if recursive:
-                    self.connection.put_r(arg, arg, preserve_mtime=True)
-                else:
-                    self.connection.put_d(arg, arg, preserve_mtime=True)
+                if put_dirs:
+                    os.chdir(arg)
+                    try:
+                        self.mkdir([arg])
+                    except IOError:
+                        pass  # already exists
+                    self.connection.chdir(arg)
+
+                    for file in os.listdir('.'):
+                        self.put([file], put_dirs=recursive)
+
+                    self.connection.chdir('..')
+                    os.chdir(os.pardir)
             else:
                 raise FileNotFoundError("couldn't find the requested file or folder")
     # endregion
