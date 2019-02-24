@@ -325,16 +325,28 @@ class PutCommandTestCase(SFTPTestCase):
         with self.assertRaises(FileNotFoundError):
             self.sftp_client.put(['0xdeadbeef'])
 
-    def test_put_file_not_found_r(self):
-        """Test put when called on a non-existant file/folder using -r flag"""
-        with self.assertRaises(FileNotFoundError):
-            self.sftp_client.put(['-r', '0xdeadbeef'])
-
     def test_put_file(self):
         """Test putting a file"""
+        open(self.test_file_name, 'w')
         self.sftp_client.put([self.test_file_name])
         result = self.sftp_client.ls([])
         self.assertIn(self.test_file_name, result)
+        # self.sftp_client.rm([self.test_file_name])
+        remove(self.test_file_name)
+
+    def test_put_file_target(self):
+        test_folder = 'someTestFolder'
+        test_file = 'someTestFile'
+        # remote = self.sftp_client.ls()
+        # self.assertNotIn(test_folder, remote)
+        open(test_file, 'w')
+        self.sftp_client.put(['-t', test_folder, test_file])
+        remote = self.sftp_client.ls([])
+        self.assertIn(test_folder, remote)
+        inner = self.sftp_client.ls([test_folder])
+        self.assertIn(test_file, inner)
+        # self.sftp_client.rmdir([test_folder]
+        remove(test_file)
 
 
 def suite():
@@ -344,7 +356,7 @@ def suite():
     suite.addTest(PublicKeyAuthenticationTestCase('test_public_key_auth'))
 
     suite.addTest(PutCommandTestCase('test_put_file_not_found'))
-    suite.addTest(PutCommandTestCase('test_put_file_not_found_r'))
+    suite.addTest(PutCommandTestCase('test_put_file_target'))
     suite.addTest(PutCommandTestCase('test_put_file'))
 
     suite.addTest(ListCommandTestCase('test_list_file'))

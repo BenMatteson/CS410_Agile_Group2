@@ -86,34 +86,26 @@ class SFTP(object):
         else:
             raise IOError(f"The remote path '{args[0]}' is not a file")
 
-    def put(self, args, put_dirs=None):
-        recursive = False
-        if len(args) > 1 and args[0] == '-r':
-            recursive = True
-            args = args[1:]
-        for arg in args:
-            if os.path.isfile(arg):
-                self.connection.put(arg, preserve_mtime=True)
-
-            elif os.path.isdir(arg):
-                if put_dirs is not False and len(os.listdir(arg)) > 0:
-                    if put_dirs is None:
-                        put_dirs = recursive
+    def put(self, args):
+        target = None
+        iter_args = iter(args)
+        for arg in iter_args:
+            if arg == '-t':
+                target = next(iter_args)
+            elif os.path.isfile(arg):
+                if target is not None:
                     try:
-                        self.mkdir([arg])
+                        self.mkdir([target])
                     except IOError:
                         pass  # already exists
-                    self.connection.chdir(arg)
-                    os.chdir(arg)
-
-                    for file in os.listdir('.'):
-                        self.put([file], put_dirs=put_dirs)
-
-                    self.connection.chdir('..')
-                    os.chdir(os.pardir)
+                    self.connection.put(arg, target + '/' + arg, preserve_mtime=True)
+                else:
+                    self.connection.put(arg, preserve_mtime=True)
+            elif os.path.isdir(arg):
+                raise IOError("Cannot put directories")
 
             else:
-                raise FileNotFoundError("couldn't find the requested file or folder")
+                raise FileNotFoundError("couldn't find the requested file")
     # endregion
 
     def __del__(self):
