@@ -102,6 +102,7 @@ class SFTP(object):
         target = None
         iter_args = iter(args)
         for arg in iter_args:
+            arg = expanduser(arg)
             if arg == '-t':
                 target = next(iter_args)
             elif os.path.isfile(arg):
@@ -110,7 +111,7 @@ class SFTP(object):
                         self.mkdir([target])
                     except IOError:
                         pass  # already exists
-                    self.connection.put(arg, target + '/' + arg, preserve_mtime=True)
+                    self.connection.put(arg, target + '/' + os.path.basename(arg), preserve_mtime=True)
                 else:
                     self.connection.put(arg, preserve_mtime=True)
             elif os.path.isdir(arg):
