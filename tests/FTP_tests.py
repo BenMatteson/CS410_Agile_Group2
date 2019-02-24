@@ -7,6 +7,7 @@ import warnings
 import argparse
 from paramiko import SFTPAttributes
 from stat import *
+import re
 
 # fix for running as script?
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -53,6 +54,12 @@ class SFTPTestCase(unittest.TestCase):
         cls.sftp_client = None
         if os.path.exists(DOWNLOADS_DIRECTORY):
             shutil.rmtree(DOWNLOADS_DIRECTORY)
+
+    def assertExists(self, item, msg=None):
+            """Fail the test unless item exists on the remote SFTP server."""
+            if not self.sftp_client.connection.exists(item):
+                msg = self._formatMessage(msg, "%s does not exist on remote server" % item)
+                raise self.failureException(msg)
 
 
 class PlaintextAuthenticationTestCase(SFTPTestCase):
@@ -634,6 +641,13 @@ class CopyCommandTestCase(SFTPTestCase):
     def tearDown(self):
         self.sftp_client.connection.execute('rm -r "' + self.test_dir_name)
         self.sftp_client.connection.execute('rm -r "' + self.test_dir_name + '-copy"')
+
+    def assertCopyExists(self, item, msg=None):
+        item_copy = re.sub(self.test_dir_name, self.test_dir_name + '-copy', item)
+        try:
+            return super(CopyCommandTestCase, self).assertExists(item_copy, msg)
+        except AssertionError as e:
+            raise e
     
     def test_copy_zero_arg(self):
         """Test cp command with zero arguments"""
@@ -700,17 +714,34 @@ class CopyCommandTestCase(SFTPTestCase):
         # confirm that the copy now exists
         self.assertTrue(self.sftp_client.connection.exists(dst_d))
 
-        # TODO: walk the dst_dir tree and use something like exists() to:
-        #  confirm that this is a copy of src_dir
+    def test_copy_walktree(self):
+        """Test cp command results by performing walktree of copied directory"""
+        # confirm that each directory exists when walking the copied directory tree
+        self.sftp_client.connection.walktree(self.test_dir_name, self.assertCopyExists, self.assertCopyExists, self.assertCopyExists)
+
+    def test_copy_walktree_assertCopyExists(self):
+        """Test assertExists() method by performing walktree of copied directory expecting exception"""
+        # confirm that after removing something from the copied directory tree,
+        # that the assertCopyExists method actual fails
+        self.sftp_client.connection.execute('rm -r "' + self.test_dir_name + '-copy/testdir"')
+        with self.assertRaises(AssertionError):
+            self.sftp_client.connection.walktree(self.test_dir_name, self.assertCopyExists, self.assertCopyExists, self.assertCopyExists)
 
 class CopyRCommandTestCase(SFTPTestCase):
     """CopyRCommandTestCase class provides a unittest class used for testing the SFTP cp_r command"""
     def setUp(self):
         self.sftp_client.connection.execute('mkdir ' + self.test_dir_name)
+        self.sftp_client.connection.execute('touch ' + self.test_dir_name + '/testfile1')
+        self.sftp_client.connection.execute('mkdir ' + self.test_dir_name + '/testdir')
+        self.sftp_client.connection.execute('touch ' + self.test_dir_name + '/testdir/testfile2')
     
     def tearDown(self):
-        self.sftp_client.connection.execute('rm -r "' + self.test_dir_name)
-        self.sftp_client.connection.execute('rm -r "' + self.test_dir_name + '-copy"')
+        self.sftp_client.connection.execute('rm -r ' + self.test_dir_name)
+        self.sftp_client.connection.execute('rm -r ' + self.test_dir_name + '-copy')
+    
+    def assertCopyExists(self, item, msg=None):
+        item_copy = re.sub(self.test_dir_name, self.test_dir_name + '-copy', item)
+        return super(CopyRCommandTestCase, self).assertExists(item_copy, msg)
     
     def test_copy_r_zero_arg(self):
         """Test cp_r command with zero arguments"""
@@ -776,9 +807,6 @@ class CopyRCommandTestCase(SFTPTestCase):
         
         # confirm that the copy now exists
         self.assertTrue(self.sftp_client.connection.exists(dst_d))
-
-        # TODO: walk the dst_dir tree and use something like exists() to:
-        #  confirm that this is a copy of src_dir
 
 
 class PutCommandTestCase(SFTPTestCase):
@@ -875,6 +903,8 @@ def suite():
     suite.addTest(CopyCommandTestCase('test_copy_invalid_src'))
     suite.addTest(CopyCommandTestCase('test_copy_invalid_dst'))
     suite.addTest(CopyCommandTestCase('test_copy_valid_src'))
+    suite.addTest(CopyCommandTestCase('test_copy_walktree'))
+    suite.addTest(CopyCommandTestCase('test_copy_walktree_assertCopyExists'))
 
     suite.addTest(CopyRCommandTestCase('test_copy_r_zero_arg'))
     suite.addTest(CopyRCommandTestCase('test_copy_r_one_arg'))
@@ -882,6 +912,9 @@ def suite():
     suite.addTest(CopyRCommandTestCase('test_copy_r_invalid_src'))
     suite.addTest(CopyRCommandTestCase('test_copy_r_invalid_dst'))
     suite.addTest(CopyRCommandTestCase('test_copy_r_valid_src'))
+    # use the same walktree tests for cp_r
+    suite.addTest(CopyCommandTestCase('test_copy_walktree'))
+    suite.addTest(CopyCommandTestCase('test_copy_walktree_assertCopyExists'))
     
     return suite
 
