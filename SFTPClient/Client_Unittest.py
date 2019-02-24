@@ -1,7 +1,8 @@
-from SFTPClient.Client import SFTP
-import SFTPClient
 import unittest
 from unittest.mock import patch, MagicMock, call, ANY
+
+import SFTPClient
+from SFTPClient.Client import SFTP
 
 
 class Test_Client(unittest.TestCase):
@@ -88,24 +89,13 @@ class Testchmod(Test_Client):
         # verify
         self.assertRaises(TypeError, self.myClass.chmod, ['car', 'boat', 'train'])
 
-class TestPut(Test_Client):
+
+class Testput(Test_Client):
     def test_put_file_not_found(self):
         SFTPClient.Client.os.path.isfile.return_value = False
         SFTPClient.Client.os.path.isdir.return_value = False
         with self.assertRaises(FileNotFoundError):
             self.myClass.put(['test.file'])
-
-    def test_put_dir_not_found(self):
-        SFTPClient.Client.os.path.isfile.return_value = False
-        SFTPClient.Client.os.path.isdir.return_value = False
-        with self.assertRaises(FileNotFoundError):
-            self.myClass.put(['test_dir'])
-
-    def test_put_dir_recursive_not_found(self):
-        SFTPClient.Client.os.path.isfile.return_value = False
-        SFTPClient.Client.os.path.isdir.return_value = False
-        with self.assertRaises(FileNotFoundError):
-            self.myClass.put(['-r', 'test_dir'])
 
     def test_put_file(self):
         SFTPClient.Client.os.path.isfile.return_value = True
@@ -116,14 +106,14 @@ class TestPut(Test_Client):
     def test_put_dir(self):
         SFTPClient.Client.os.path.isfile.return_value = False
         SFTPClient.Client.os.path.isdir.return_value = True
-        self.myClass.put(['test_dir'])
-        self.myClass.connection.put_d.assert_called_once_with('test_dir', 'test_dir', preserve_mtime=True)
+        with self.assertRaises(IOError):
+            self.myClass.put(['test_dir'])
 
-    def test_put_dir_recursive(self):
-        SFTPClient.Client.os.path.isfile.return_value = False
-        SFTPClient.Client.os.path.isdir.return_value = True
-        self.myClass.put(['-r', 'test_dir'])
-        self.myClass.connection.put_r.assert_called_once_with('test_dir', 'test_dir', preserve_mtime=True)
+    def test_put_file_path(self):
+        SFTPClient.Client.os.path.isfile.return_value = True
+        SFTPClient.Client.os.path.isdir.return_value = False
+        self.myClass.put(['-t', 'random_path/to_the', 'local/file.txt'])
+        self.myClass.connection.put.assert_called_once_with('local/file.txt', 'random_path/to_the/file.txt', preserve_mtime=True)
 
 
 if __name__ == '__main__':
