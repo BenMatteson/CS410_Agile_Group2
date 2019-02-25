@@ -30,11 +30,12 @@ class SFTP(object):
         """Check the connection (using the listdir() method) to confirm that it's active."""
         return True if self.connection.listdir() else False
 
+    @staticmethod
     def log_history(func):
         """A decorator function for logging command history each time a command is executed"""
         @wraps(func)
         def logged_func(self, args):
-            if (len(args) > 0):
+            if len(args) > 0:
                 with open(HISTORY_FILE, "a") as f:
                     f.write(func.__name__ + " " + " ".join(str(arg) for arg in args) + "\n")
             else:
@@ -67,7 +68,7 @@ class SFTP(object):
         elif len(args) is 1:
             results = self.connection.listdir(args[0])
         else:
-            raise TypeError('ls() takes exactly zero or one arguments (' + str(len(args)) + ' given)')
+            raise TypeError("Usage: ls [<dir_path>]")
         return results
 
     @log_history
@@ -80,7 +81,7 @@ class SFTP(object):
         if len(args) is 2:
             self.connection.chmod(args[0], int(args[1]))
         else:
-            raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
+            raise TypeError('"Usage: chmod <file/dir_path> <mode>"')
     
     @log_history
     def rmdir(self, args):
@@ -98,7 +99,6 @@ class SFTP(object):
             self.connection.rmdir(args[0])
         else:
             raise TypeError(f"Error: '{args[0]}' is not a directory")
-        
 
     @log_history
     def rm(self, args):
@@ -106,12 +106,12 @@ class SFTP(object):
             Remove file from remote path given by argument. Arg may include path ('/').
         """
         if len(args) != 1:
-            raise TypeError("Usage: rm [filename | path/to/filename]")
+            raise TypeError("Usage: rm <filename | path/to/filename>")
         else:
             if self.connection.isfile(args[0]):
                 self.connection.remove(args[0])
             else:
-                raise TypeError("Usage: rm [filename | path/to/filename]")
+                raise IOError(f"The remote path '{args[0]}' was not found")
 
     @log_history
     def mkdir(self, args):
@@ -120,7 +120,7 @@ class SFTP(object):
             are created with permissions 775.
         """
         if len(args) != 1:
-            raise TypeError("Usage: mkdir [dirname | path/to/dirname]")
+            raise TypeError("Usage: mkdir <dirname | path/to/dirname>")
         else:
             if args[0].find('/') != -1:
                 self.connection.makedirs(args[0], mode = 775)

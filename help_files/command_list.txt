@@ -8,11 +8,9 @@ help <command> @ Help with <command>
 history @ Show this session's command history
 ls @ List the contents of the current working directory on the remote server
 ls <path> @ List the contents of the requested directory on the remote server
-mkdir @ Create remote directory
 mkdir <path | path/to/dir> @ Creates remote directory
 put <file_name> [<file_name> ...] @ Put the given file(s) to the remote server
-put -t <target_dir> <file_name [<file_name> ...] @ Put the given file(s) to the target directory on the remote server
-rm @ Remove remote file
+put -t <target_dir> <file_name> [<file_name> ...] @ Put the given file(s) to the target directory on the remote server
 rm <file | path/to/file> @ Remove remote file
 rename <old> <new> @ rename a file or directory on remote server
 rmdir <remotepath> @ Delete a directory and its contents
