@@ -4,11 +4,12 @@ import pysftp
 import ntpath
 import os
 from os.path import expanduser, isfile, exists, join
-from os import mkdir
-
+from os import mkdir, remove
 from paramiko import ssh_exception
+from functools import wraps
 
 DOWNLOADS_DIRECTORY = "downloads"
+HISTORY_FILE = "command_history.txt"
 
 
 class SFTP(object):
@@ -20,16 +21,37 @@ class SFTP(object):
         if not exists(DOWNLOADS_DIRECTORY):
             mkdir(DOWNLOADS_DIRECTORY)
         self.local_directory = expanduser('~')
+        if exists(HISTORY_FILE):
+            remove(HISTORY_FILE)
         self.connection = self.initiate_connection()
 
     def is_connected(self):
         """Check the connection (using the listdir() method) to confirm that it's active."""
         return True if self.connection.listdir() else False
 
+    def log_history(func):
+        @wraps(func)
+        def logged_func(self, *args):
+            if (len(args) > 0):
+                with open(HISTORY_FILE, "a") as f:
+                    f.write(func.__name__ + " " + " ".join(str(arg) for arg in args[0]) + "\n")
+            else:
+                with open(HISTORY_FILE, "a") as f:
+                    f.write(func.__name__ + "\n")
+            return func(self, *args)
+        return logged_func
+        
     # region Commands Section
     def ping(self):
         return "pong" if self.connection.listdir() else "nothing happened"
 
+    def history(self):
+        command_history = None
+        with open(HISTORY_FILE, "r") as f:
+            command_history = f.read()
+        print(command_history)
+
+    @log_history
     def ls(self, args):
         """List directory contents on the remote server"""
         results = None
@@ -41,6 +63,7 @@ class SFTP(object):
             raise TypeError('ls() takes exactly zero or one arguments (' + str(len(args)) + ' given)')
         return results
 
+    @log_history
     def chmod(self, args):
         """Change or modify permissions of directories and files on the remote server
 
@@ -68,6 +91,8 @@ class SFTP(object):
         else:
             raise TypeError(f"Error: '{args[0]}' is not a directory")
         
+
+    @log_history
     def rm(self, args):
         """
             Remove file from remote path given by argument. Arg may include path ('/').
@@ -80,6 +105,7 @@ class SFTP(object):
             else:
                 raise TypeError("Usage: rm [filename | path/to/filename]")
 
+    @log_history
     def mkdir(self, args):
         """
             Creates directory on remote path passed as an argument. Directories
@@ -93,6 +119,7 @@ class SFTP(object):
             else:
                 self.connection.mkdir(args[0], mode = 775)
 
+    @log_history
     def get(self, args):
         """
         Downloads a remote file to the local machine. Given a single remotepath
