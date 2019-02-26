@@ -648,7 +648,6 @@ class PutCommandTestCase(SFTPTestCase):
 def suite():
     suite = unittest.TestSuite()
 
-    """
     suite.addTest(PlaintextAuthenticationTestCase('test_plaintext_auth'))
     suite.addTest(PublicKeyAuthenticationTestCase('test_public_key_auth'))
 
@@ -696,7 +695,6 @@ def suite():
     suite.addTest(RmdirCommandTestCase('test_rmdir_multiple_nested_dirs'))
     suite.addTest(RmdirCommandTestCase('test_rmdir_multiple_nested_dirs_and_files'))
     
-    """
     suite.addTest(LogHistoryTestCase('test_log_history_ls_no_arg'))
     suite.addTest(LogHistoryTestCase('test_log_history_ls_one_arg'))
     suite.addTest(LogHistoryTestCase('test_log_history_multiple_commands'))
