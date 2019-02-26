@@ -90,7 +90,7 @@ class SFTP(object):
 
     def listAllLocal(self):
         '''It does list all files and directories in your local machine. It will start with local folder where the
-         script exist, and will expand upon the user request to display everything of (~) in MAC OS'''
+         script exist'''
         currentDirectoryPath = os.getcwd()
         filesInCurrentDirectory = os.listdir(os.getcwd())
         print("Your current directory path is: {} \n".format(currentDirectoryPath))
