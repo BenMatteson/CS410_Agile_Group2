@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-
 import sys
 from os import path, remove, rmdir
 import unittest
-from unittest import main
+
 import warnings
 import argparse
 
@@ -211,6 +210,7 @@ class ChmodCommandTestCase(SFTPTestCase):
         self.assertIsInstance(result, list)
         self.assertTrue(len(result) is 0)
 
+
 class GetCommandTestCase(SFTPTestCase):
     """GetCommandTestCase class provides a unittest class used for testing the SFTP get command"""
 
@@ -319,7 +319,7 @@ class RmCommandTestCase(SFTPTestCase):
             self.sftp_client.rm(filepath)
 
 class MkdirCommandTestCase(SFTPTestCase):
-    """MkdirCommandTestCase class provides a unittest calss used for testing the SFTP mkdir command"""
+    """MkdirCommandTestCase class provides a unittest class used for testing the SFTP mkdir command"""
 
     def test_mkdir_zero_arg(self):
         """Test mkdir command with zero arguments"""
@@ -330,7 +330,7 @@ class MkdirCommandTestCase(SFTPTestCase):
     def test_mkdir_single_dir(self):
         """Test mkdir command with path 'dirname' being created in current directory"""
         # Successful run of test will have newly created directory in current remote directory
-        # TODO remove directory when case is finished with 'rm' directory compatibal command
+        # TODO remove directory when case is finished with 'rm' directory compatible command
         dir_path = 'yes_I_want_fries_with_that'
         dir_files = self.sftp_client.ls([])
         self.assertFalse(dir_path in dir_files)
@@ -351,12 +351,45 @@ class MkdirCommandTestCase(SFTPTestCase):
         self.assertIn(split_path[1], dir_files)
 
 
+class PutCommandTestCase(SFTPTestCase):
+    def test_put_file_not_found(self):
+        """Test put when called on a non-existant file/folder"""
+        with self.assertRaises(FileNotFoundError):
+            self.sftp_client.put(['0xdeadbeef'])
+
+    def test_put_file(self):
+        """Test putting a file"""
+        open(self.test_file_name, 'w')
+        self.sftp_client.put([self.test_file_name])
+        result = self.sftp_client.ls([])
+        self.assertIn(self.test_file_name, result)
+        # self.sftp_client.rm([self.test_file_name])
+        remove(self.test_file_name)
+
+    def test_put_file_target(self):
+        test_folder = 'someTestFolder'
+        test_file = 'someTestFile'
+        # remote = self.sftp_client.ls()
+        # self.assertNotIn(test_folder, remote)
+        open(test_file, 'w')
+        self.sftp_client.put(['-t', test_folder, test_file])
+        remote = self.sftp_client.ls([])
+        self.assertIn(test_folder, remote)
+        inner = self.sftp_client.ls([test_folder])
+        self.assertIn(test_file, inner)
+        # self.sftp_client.rmdir([test_folder]
+        remove(test_file)
+
+
 def suite():
     suite = unittest.TestSuite()
 
     suite.addTest(PlaintextAuthenticationTestCase('test_plaintext_auth'))
-
     suite.addTest(PublicKeyAuthenticationTestCase('test_public_key_auth'))
+
+    suite.addTest(PutCommandTestCase('test_put_file_not_found'))
+    suite.addTest(PutCommandTestCase('test_put_file_target'))
+    suite.addTest(PutCommandTestCase('test_put_file'))
 
     suite.addTest(ListCommandTestCase('test_list_file'))
     suite.addTest(ListCommandTestCase('test_list_nonexistent'))

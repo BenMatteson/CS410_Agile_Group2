@@ -7,6 +7,8 @@ ls @ List the contents of the current working directory on the remote server
 ls <path> @ List the contents of the requested directory on the remote server
 mkdir @ Create remote directory
 mkdir <path | path/to/dir> @ Creates remote directory
+put <file_name> [<file_name> ...] @ Put the given file(s) to the remote server
+put -t <target_dir> <file_name [<file_name> ...] @ Put the given file(s) to the target directory on the remote server
 rm @ Remove remote file
 rm <file | path/to/file> @ Remove remote file
 quit @ Quits the program
