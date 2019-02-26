@@ -88,20 +88,19 @@ class SFTP(object):
 
     # endregion
 
-    def listAllLocal(self):
+    def lsl(self):
         '''It does list all files and directories in your local machine. It will start with local folder where the
          script exist'''
         currentDirectoryPath = os.getcwd()
         filesInCurrentDirectory = os.listdir(os.getcwd())
-        print("Your current directory path is: {} \n".format(currentDirectoryPath))
-        print("Files and Directories in the current folder are:\n")
+        print(currentDirectoryPath)
         for fileName in filesInCurrentDirectory:
             print(fileName)
 
-    def loggout(self):
+    def closeAndExit(self):
         try:
             self.connection.close()
-            print("Server - Client connections terminated")
+            exit()
         except Exception:
             pass
 
