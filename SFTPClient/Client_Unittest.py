@@ -1,5 +1,11 @@
+#!/usr/bin/env python3
 import unittest
 from unittest.mock import patch, MagicMock, call, ANY
+
+# fix for running as script?
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import SFTPClient
 from SFTPClient.Client import SFTP
@@ -12,6 +18,9 @@ class Test_Client(unittest.TestCase):
         SFTP.initiate_connection = MagicMock()
         SFTPClient.Client.os.path.isfile = MagicMock()
         SFTPClient.Client.os.path.isdir = MagicMock()
+        SFTPClient.Client.tempfile.gettempdir = MagicMock()
+        SFTPClient.Client.os.mkdir = MagicMock()
+        SFTPClient.Client.shutil.rmtree = MagicMock()
         self.myClass = SFTP("hostname", "username", "password", "public_key")
 
     def tearDown(self):
@@ -128,6 +137,67 @@ class Testput(Test_Client):
         self.myClass.put(['-t', 'random_path/to_the', 'local/file.txt'])
         self.myClass.connection.put.assert_called_once_with('local/file.txt', 'random_path/to_the/file.txt', preserve_mtime=True)
 
+class Testcp(Test_Client):
+    def test_cp_one_arg(self):
+        # verify that a TypeError is raised when only 1 argument is passed
+        self.assertRaises(TypeError, self.myClass.cp, ['arg1'])
+    
+    def test_cp_three_arg(self):
+        # verify that a TypeError is raised when too many arguments are passed
+        self.assertRaises(TypeError, self.myClass.cp, ['arg1', 'arg2', 'arg3'])
+    
+    def test_cp_src_not_found(self):
+        # verify that an IOError is raised when a non-existent source directory is passed
+        self.myClass.connection.exists.side_effect = [False, False]
+        self.assertRaises(IOError, self.myClass.cp, ['test.dir', 'test.dir-copy'])
+
+    def test_cp_dst_exists(self):
+        # verify that an IOError is raised when an existing destination directory is passed
+        self.myClass.connection.exists.side_effect = [True, True]
+        self.assertRaises(IOError, self.myClass.cp, ['test.dir', 'test.dir-copy'])
+
+    def test_cp_dir_valid(self):
+        # setup
+        self.myClass.connection.exists.side_effect = [True, False]
+        SFTPClient.Client.tempfile.gettempdir.return_value = '/tmp'
+        # actual
+        self.myClass.cp(['test.dir', 'test.dir-copy'])
+        # verify
+        SFTPClient.Client.os.mkdir.assert_called_once_with('/tmp/test.dir')
+        self.myClass.connection.get_r.assert_called_once_with('test.dir', '/tmp/test.dir', preserve_mtime=True)
+        SFTPClient.Client.os.mkdir.assert_called_once_with('/tmp/test.dir')
+        self.myClass.connection.mkdir.assert_called_once_with('test.dir-copy')
+        self.myClass.connection.put_r.assert_called_once_with('/tmp/test.dir', 'test.dir-copy', preserve_mtime=True)
+        SFTPClient.Client.shutil.rmtree.assert_called_once_with('/tmp/test.dir')
+
+class Testcp_r(Test_Client):
+    def test_cp_r_one_arg(self):
+        # verify that a TypeError is raised when only 1 argument is passed
+        self.assertRaises(TypeError, self.myClass.cp_r, ['arg1'])
+    
+    def test_cp_r_three_arg(self):
+        # verify that a TypeError is raised when too many arguments are passed
+        self.assertRaises(TypeError, self.myClass.cp_r, ['arg1', 'arg2', 'arg3'])
+    
+    def test_cp_r_src_not_found(self):
+        # setup the exists() method to return False, and then False (invalid src, valid dst)
+        self.myClass.connection.exists.side_effect = [False, False]
+        # verify that an IOError is raised when a non-existent source directory is passed
+        self.assertRaises(IOError, self.myClass.cp_r, ['test.dir', 'test.dir-copy'])
+
+    def test_cp_r_dst_exists(self):
+        # setup the exists() method to return True, and then True (valid src, invalid dst)
+        self.myClass.connection.exists.side_effect = [True, True]
+        # verify that an IOError is raised when an existing destination directory is passed
+        self.assertRaises(IOError, self.myClass.cp_r, ['test.dir', 'test.dir-copy'])
+
+    def test_cp_r_dir_valid(self):
+        # setup the exists() method to return True, and then False (valid src, valid dst)
+        self.myClass.connection.exists.side_effect = [True, False]
+        # actual
+        self.myClass.cp_r(['test.dir', 'test.dir-copy'])
+        # verify
+        self.myClass.connection.execute.assert_called_once_with('cp -Rp test.dir test.dir-copy')
 
 @patch("builtins.exit", autospec=True)
 class TestcloseAndExit(Test_Client):
