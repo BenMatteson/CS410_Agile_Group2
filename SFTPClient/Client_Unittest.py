@@ -90,28 +90,26 @@ class Testchmod(Test_Client):
 @patch("SFTPClient.Client.os.getcwd", autospec=True)
 @patch("builtins.print", autospec=True)
 @patch("SFTPClient.Client.os.listdir", autospec=True)
-class TestlistAllLocal(Test_Client):
-    def test_listAllLocal(self, mocklistdir, mockprint, mockgetcwd):
+class Testlsl(Test_Client):
+    def test_lsl(self, mocklistdir, mockprint, mockgetcwd):
         # setup
         mockgetcwd.return_value = "/Users/myCurrentDirectory"
         mocklistdir.side_effect = iter(["file1"])
         # actual
-        self.myClass.listAllLocal()
+        self.myClass.lsl()
         # verify
-        printCalls = [call("Your current directory path is: /Users/myCurrentDirectory \n"),
-                      call("Files and Directories in the current folder are:\n"),
-                      call("f"), call("i"), call("l"), call("e"), call("1")]
+        printCalls = [call("f"), call("i"), call("l"), call("e"), call("1")]
         mockprint.assert_has_calls(printCalls)
 
 
-@patch("builtins.print", autospec=True)
-class Testloggout(Test_Client):
-     def test_loggout(self, mockprint):
-         # actual
-         self.myClass.loggout()
-         #verify
-         self.myClass.connection.close.assert_called_once_with()
-         mockprint.assert_called_once_with("Server - Client connections terminated")
+@patch("builtins.exit", autospec=True)
+class TestcloseAndExit(Test_Client):
+    def test_closeAndExit(self, mockexit):
+        # actual
+        self.myClass.closeAndExit()
+        #verify
+        self.myClass.connection.close.assert_called_once_with()
+        mockexit.assert_called_once_with()
 
 
 if __name__ == '__main__':
