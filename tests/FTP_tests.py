@@ -9,7 +9,7 @@ import argparse
 # fix for running as script?
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from SFTPClient.Client import SFTP
-from SFTPClient.Client import DOWNLOADS_DIRECTORY
+from SFTPClient.Client import DOWNLOADS_DIRECTORY, HISTORY_FILE
 from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
 
 
@@ -517,6 +517,103 @@ class MkdirCommandTestCase(SFTPTestCase):
         dir_files = self.sftp_client.ls([])
         self.assertNotIn(split_path[0], dir_files)
 
+class LogHistoryTestCase(SFTPTestCase):
+    def setUp(self):
+        if path.exists(HISTORY_FILE):
+            remove(HISTORY_FILE)
+        
+    def tearDown(self):
+        if path.exists(HISTORY_FILE):
+            remove(HISTORY_FILE)
+
+    def test_log_history_ls_no_arg(self):
+        self.sftp_client.ls([])
+        file_text = ""
+        with open(HISTORY_FILE, "r") as f:
+            file_text = f.read()
+        self.assertEqual(file_text, "ls\n") 
+        
+    def test_log_history_ls_one_arg(self):
+        self.sftp_client.ls(['Downloads'])
+        file_text = ""
+        with open(HISTORY_FILE, "r") as f:
+            file_text = f.read()
+        self.assertEqual(file_text, "ls Downloads\n") 
+
+    def test_log_history_multiple_commands(self):
+        dir_name = "test_log_history_multiple_commands"
+        self.sftp_client.ls([])
+        self.sftp_client.ls(["Downloads"])
+        self.sftp_client.mkdir([dir_name])
+        self.sftp_client.chmod([dir_name, 777])
+        self.sftp_client.connection.execute(f"touch {dir_name}/file1.txt")
+        self.sftp_client.get([f"{dir_name}/file1.txt"])
+        self.sftp_client.get([f"{dir_name}/file1.txt", "~/Desktop/file1.txt"])
+        self.sftp_client.rm([f"{dir_name}/file1.txt"])
+        self.sftp_client.connection.rmdir(f"{dir_name}")
+        if path.exists("~/Desktop/file1.txt"):
+            remove("~/Desktop/file1.txt")
+        if path.exists(f"{DOWNLOADS_DIRECTORY}/file1.txt"):
+            remove(f"{DOWNLOADS_DIRECTORY}/file1.txt")
+
+        file_text = ""
+        expected = ("ls\n"
+                   "ls Downloads\n"
+                   f"mkdir {dir_name}\n"
+                   f"chmod {dir_name} 777\n"
+                   f"get {dir_name}/file1.txt\n"
+                   f"get {dir_name}/file1.txt ~/Desktop/file1.txt\n"
+                   f"rm {dir_name}/file1.txt\n")
+        with open(HISTORY_FILE, "r") as f:
+            file_text = f.read()
+        self.assertEqual(file_text, expected) 
+
+
+class HistoryCommandTestCase(SFTPTestCase):
+    def setUp(self):
+        if path.exists(HISTORY_FILE):
+            remove(HISTORY_FILE)
+        
+    def tearDown(self):
+        if path.exists(HISTORY_FILE):
+            remove(HISTORY_FILE)
+
+    def test_history_ls_no_arg(self):
+        self.sftp_client.ls([])
+        command_history = self.sftp_client.history([])
+        self.assertEqual(command_history, "ls") 
+        
+    def test_history_ls_one_arg(self):
+        self.sftp_client.ls(["Downloads"])
+        command_history = self.sftp_client.history([])
+        self.assertEqual(command_history, "ls Downloads") 
+
+    def test_history_multiple_commands(self):
+        dir_name = "test_log_history_multiple_commands"
+        self.sftp_client.ls([])
+        self.sftp_client.ls(["Downloads"])
+        self.sftp_client.mkdir([dir_name])
+        self.sftp_client.chmod([dir_name, 777])
+        self.sftp_client.connection.execute(f"touch {dir_name}/file1.txt")
+        self.sftp_client.get([f"{dir_name}/file1.txt"])
+        self.sftp_client.get([f"{dir_name}/file1.txt", "~/Desktop/file1.txt"])
+        self.sftp_client.rm([f"{dir_name}/file1.txt"])
+        self.sftp_client.connection.rmdir(f"{dir_name}")
+        if path.exists("~/Desktop/file1.txt"):
+            remove("~/Desktop/file1.txt")
+        if path.exists(f"{DOWNLOADS_DIRECTORY}/file1.txt"):
+            remove(f"{DOWNLOADS_DIRECTORY}/file1.txt")
+
+        command_history = self.sftp_client.history([])
+        expected = ("ls\n"
+                   "ls Downloads\n"
+                   f"mkdir {dir_name}\n"
+                   f"chmod {dir_name} 777\n"
+                   f"get {dir_name}/file1.txt\n"
+                   f"get {dir_name}/file1.txt ~/Desktop/file1.txt\n"
+                   f"rm {dir_name}/file1.txt")
+        self.assertEqual(command_history, expected) 
+
 
 class PutCommandTestCase(SFTPTestCase):
     def test_put_file_not_found(self):
@@ -551,6 +648,7 @@ class PutCommandTestCase(SFTPTestCase):
 def suite():
     suite = unittest.TestSuite()
 
+    """
     suite.addTest(PlaintextAuthenticationTestCase('test_plaintext_auth'))
     suite.addTest(PublicKeyAuthenticationTestCase('test_public_key_auth'))
 
@@ -598,6 +696,15 @@ def suite():
     suite.addTest(RmdirCommandTestCase('test_rmdir_multiple_nested_dirs'))
     suite.addTest(RmdirCommandTestCase('test_rmdir_multiple_nested_dirs_and_files'))
     
+    """
+    suite.addTest(LogHistoryTestCase('test_log_history_ls_no_arg'))
+    suite.addTest(LogHistoryTestCase('test_log_history_ls_one_arg'))
+    suite.addTest(LogHistoryTestCase('test_log_history_multiple_commands'))
+
+    suite.addTest(HistoryCommandTestCase('test_history_ls_no_arg'))
+    suite.addTest(HistoryCommandTestCase('test_history_ls_one_arg'))
+    suite.addTest(HistoryCommandTestCase('test_history_multiple_commands'))
+
     return suite
 
 

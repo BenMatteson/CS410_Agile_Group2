@@ -31,25 +31,27 @@ class SFTP(object):
 
     def log_history(func):
         @wraps(func)
-        def logged_func(self, *args):
-            if (len(args) > 0):
+        def logged_func(*args):
+            if (len(args[1]) > 0):
                 with open(HISTORY_FILE, "a") as f:
-                    f.write(func.__name__ + " " + " ".join(str(arg) for arg in args[0]) + "\n")
+                    f.write(func.__name__ + " " + " ".join(str(arg) for arg in args[1]) + "\n")
             else:
                 with open(HISTORY_FILE, "a") as f:
                     f.write(func.__name__ + "\n")
-            return func(self, *args)
+            return func(*args)
         return logged_func
         
     # region Commands Section
     def ping(self):
         return "pong" if self.connection.listdir() else "nothing happened"
 
-    def history(self):
-        command_history = None
+    def history(self, args):
+        if len(args) != 0:
+            raise TypeError('history takes exactly zero arguments (' + str(len(args)) + ' given)')
+        command_history = ""
         with open(HISTORY_FILE, "r") as f:
             command_history = f.read()
-        print(command_history)
+        return command_history.strip()
 
     @log_history
     def ls(self, args):
