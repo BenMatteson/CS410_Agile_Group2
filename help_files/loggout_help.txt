@@ -1,1 +1,0 @@
-Does close connection between the server and the client.
