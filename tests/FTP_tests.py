@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-
 import sys
 from os import path, remove, rmdir
 import unittest
-from unittest import main
+
 import warnings
 import argparse
 
@@ -483,7 +482,7 @@ class RmCommandTestCase(SFTPTestCase):
 
 
 class MkdirCommandTestCase(SFTPTestCase):
-    """MkdirCommandTestCase class provides a unittest calss used for testing the SFTP mkdir command"""
+    """MkdirCommandTestCase class provides a unittest class used for testing the SFTP mkdir command"""
 
     def test_mkdir_zero_arg(self):
         """Test mkdir command with zero arguments"""
@@ -519,12 +518,45 @@ class MkdirCommandTestCase(SFTPTestCase):
         self.assertNotIn(split_path[0], dir_files)
 
 
+class PutCommandTestCase(SFTPTestCase):
+    def test_put_file_not_found(self):
+        """Test put when called on a non-existant file/folder"""
+        with self.assertRaises(FileNotFoundError):
+            self.sftp_client.put(['0xdeadbeef'])
+
+    def test_put_file(self):
+        """Test putting a file"""
+        open(self.test_file_name, 'w')
+        self.sftp_client.put([self.test_file_name])
+        result = self.sftp_client.ls([])
+        self.assertIn(self.test_file_name, result)
+        # self.sftp_client.rm([self.test_file_name])
+        remove(self.test_file_name)
+
+    def test_put_file_target(self):
+        test_folder = 'someTestFolder'
+        test_file = 'someTestFile'
+        # remote = self.sftp_client.ls()
+        # self.assertNotIn(test_folder, remote)
+        open(test_file, 'w')
+        self.sftp_client.put(['-t', test_folder, test_file])
+        remote = self.sftp_client.ls([])
+        self.assertIn(test_folder, remote)
+        inner = self.sftp_client.ls([test_folder])
+        self.assertIn(test_file, inner)
+        # self.sftp_client.rmdir([test_folder]
+        remove(test_file)
+
+
 def suite():
     suite = unittest.TestSuite()
 
     suite.addTest(PlaintextAuthenticationTestCase('test_plaintext_auth'))
-
     suite.addTest(PublicKeyAuthenticationTestCase('test_public_key_auth'))
+
+    suite.addTest(PutCommandTestCase('test_put_file_not_found'))
+    suite.addTest(PutCommandTestCase('test_put_file_target'))
+    suite.addTest(PutCommandTestCase('test_put_file'))
 
     suite.addTest(ListCommandTestCase('test_list_file'))
     suite.addTest(ListCommandTestCase('test_list_nonexistent'))
