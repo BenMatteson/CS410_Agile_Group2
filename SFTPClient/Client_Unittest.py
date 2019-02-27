@@ -90,6 +90,19 @@ class Testchmod(Test_Client):
         self.assertRaises(TypeError, self.myClass.chmod, ['car', 'boat', 'train'])
 
 
+@patch("SFTPClient.Client.os.getcwd", autospec=True)
+@patch("SFTPClient.Client.os.listdir", autospec=True)
+class Testlsl(Test_Client):
+    def test_lsl(self, mocklistdir, mockgetcwd):
+        # setup
+        mockgetcwd.return_value = "/Users/myCurrentDirectory"
+        mocklistdir.side_effect = iter(["file1"])
+        # actual
+        self.myClass.lsl()
+        # verify
+        mocklistdir.assert_called_once_with("/Users/myCurrentDirectory")
+
+
 class Testput(Test_Client):
     def test_put_file_not_found(self):
         SFTPClient.Client.os.path.isfile.return_value = False
@@ -114,6 +127,16 @@ class Testput(Test_Client):
         SFTPClient.Client.os.path.isdir.return_value = False
         self.myClass.put(['-t', 'random_path/to_the', 'local/file.txt'])
         self.myClass.connection.put.assert_called_once_with('local/file.txt', 'random_path/to_the/file.txt', preserve_mtime=True)
+
+
+@patch("builtins.exit", autospec=True)
+class TestcloseAndExit(Test_Client):
+    def test_closeAndExit(self, mockexit):
+        # actual
+        self.myClass.close()
+        #verify
+        self.myClass.connection.close.assert_called_once_with()
+        mockexit.assert_called_once_with()
 
 
 if __name__ == '__main__':
