@@ -466,8 +466,6 @@ def suite():
     suite.addTest(MkdirCommandTestCase('test_mkdir_single_dir'))
     suite.addTest(MkdirCommandTestCase('test_mkdir_nested_dir'))
 
-<<<<<<< HEAD
-=======
     suite.addTest(RenameCommandTestCase('test_rename_zero_arg'))
     suite.addTest(RenameCommandTestCase('test_rename_one_arg'))
     suite.addTest(RenameCommandTestCase('test_rename_two_arg_no_such_remote_file'))
@@ -476,7 +474,6 @@ def suite():
     suite.addTest(RenameCommandTestCase('test_rename_three_arg'))
 
 
->>>>>>> 4ebe59f... Merge branch 'master' into Son_branch
     suite.addTest(GetCommandTestCase('test_get_zero_arg'))
     suite.addTest(GetCommandTestCase('test_get_one_arg'))
     suite.addTest(GetCommandTestCase('test_get_one_arg_no_such_remote_file'))
