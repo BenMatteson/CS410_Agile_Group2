@@ -1,0 +1,4 @@
+put <file_name> [<file_name> ...] @ Put the given file(s) to the remote server
+put -t <target_dir> <file_name [<file_name> ...] @ Put the given file(s) to the target directory on the remote server
+Puts the provided files to the remote server.
+The target can be set at any point in the command, but will only effect following files.

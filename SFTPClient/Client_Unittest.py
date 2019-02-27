@@ -1,7 +1,8 @@
-from SFTPClient.Client import SFTP
-
 import unittest
 from unittest.mock import patch, MagicMock, call, ANY
+
+import SFTPClient
+from SFTPClient.Client import SFTP
 
 
 class Test_Client(unittest.TestCase):
@@ -9,6 +10,8 @@ class Test_Client(unittest.TestCase):
         self.local_directory = MagicMock()
         SFTP.connection = MagicMock()
         SFTP.initiate_connection = MagicMock()
+        SFTPClient.Client.os.path.isfile = MagicMock()
+        SFTPClient.Client.os.path.isdir = MagicMock()
         self.myClass = SFTP("hostname", "username", "password", "public_key")
 
     def tearDown(self):
@@ -88,25 +91,49 @@ class Testchmod(Test_Client):
 
 
 @patch("SFTPClient.Client.os.getcwd", autospec=True)
-@patch("builtins.print", autospec=True)
 @patch("SFTPClient.Client.os.listdir", autospec=True)
 class Testlsl(Test_Client):
-    def test_lsl(self, mocklistdir, mockprint, mockgetcwd):
+    def test_lsl(self, mocklistdir, mockgetcwd):
         # setup
         mockgetcwd.return_value = "/Users/myCurrentDirectory"
         mocklistdir.side_effect = iter(["file1"])
         # actual
         self.myClass.lsl()
         # verify
-        printCalls = [call("f"), call("i"), call("l"), call("e"), call("1")]
-        mockprint.assert_has_calls(printCalls)
+        mocklistdir.assert_called_once_with("/Users/myCurrentDirectory")
+
+
+class Testput(Test_Client):
+    def test_put_file_not_found(self):
+        SFTPClient.Client.os.path.isfile.return_value = False
+        SFTPClient.Client.os.path.isdir.return_value = False
+        with self.assertRaises(FileNotFoundError):
+            self.myClass.put(['test.file'])
+
+    def test_put_file(self):
+        SFTPClient.Client.os.path.isfile.return_value = True
+        SFTPClient.Client.os.path.isdir.return_value = False
+        self.myClass.put(['test.file'])
+        self.myClass.connection.put.assert_called_once_with('test.file', preserve_mtime=True)
+
+    def test_put_dir(self):
+        SFTPClient.Client.os.path.isfile.return_value = False
+        SFTPClient.Client.os.path.isdir.return_value = True
+        with self.assertRaises(IOError):
+            self.myClass.put(['test_dir'])
+
+    def test_put_file_path(self):
+        SFTPClient.Client.os.path.isfile.return_value = True
+        SFTPClient.Client.os.path.isdir.return_value = False
+        self.myClass.put(['-t', 'random_path/to_the', 'local/file.txt'])
+        self.myClass.connection.put.assert_called_once_with('local/file.txt', 'random_path/to_the/file.txt', preserve_mtime=True)
 
 
 @patch("builtins.exit", autospec=True)
 class TestcloseAndExit(Test_Client):
     def test_closeAndExit(self, mockexit):
         # actual
-        self.myClass.closeAndExit()
+        self.myClass.close()
         #verify
         self.myClass.connection.close.assert_called_once_with()
         mockexit.assert_called_once_with()

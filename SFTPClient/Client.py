@@ -1,10 +1,11 @@
 import logging
-import os
 import paramiko
 import pysftp
 import ntpath
+import os
 from os.path import expanduser, isfile, exists, join
 from os import mkdir
+
 from paramiko import ssh_exception
 
 DOWNLOADS_DIRECTORY = "downloads"
@@ -16,9 +17,9 @@ class SFTP(object):
         self.username = username
         self.password = password
         self.private_key_password = private_key_password
-        self.local_directory = expanduser('~')
         if not exists(DOWNLOADS_DIRECTORY):
             mkdir(DOWNLOADS_DIRECTORY)
+        self.local_directory = expanduser('~')
         self.connection = self.initiate_connection()
 
     def is_connected(self):
@@ -50,6 +51,18 @@ class SFTP(object):
             self.connection.chmod(args[0], int(args[1]))
         else:
             raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
+
+    def rm(self, args):
+        """
+            Remove file from remote path given by argument. Arg may include path ('/').
+        """
+        if len(args) != 1:
+            raise TypeError("Usage: rm [filename | path/to/filename]")
+        else:
+            if self.connection.isfile(args[0]):
+                self.connection.remove(args[0])
+            else:
+                raise TypeError("Usage: rm [filename | path/to/filename]")
 
     def mkdir(self, args):
         """
@@ -86,21 +99,44 @@ class SFTP(object):
         else:
             raise IOError(f"The remote path '{args[0]}' is not a file")
 
+    def put(self, args):
+        target = None
+        iter_args = iter(args)
+        for arg in iter_args:
+            arg = expanduser(arg)
+            if arg == '-t':
+                target = next(iter_args)
+            elif os.path.isfile(arg):
+                if target is not None:
+                    try:
+                        self.mkdir([target])
+                    except IOError:
+                        pass  # already exists
+                    self.connection.put(arg, target + '/' + os.path.basename(arg), preserve_mtime=True)
+                else:
+                    self.connection.put(arg, preserve_mtime=True)
+            elif os.path.isdir(arg):
+                raise IOError("Cannot put directories")
+
+            else:
+                raise FileNotFoundError("couldn't find the requested file")
     # endregion
 
     def lsl(self):
         '''It does list all files and directories in your local machine. It will start with local folder where the
          script exist'''
-        currentDirectoryPath = os.getcwd()
-        filesInCurrentDirectory = os.listdir(os.getcwd())
-        print(currentDirectoryPath)
-        for fileName in filesInCurrentDirectory:
-            print(fileName)
+        return os.listdir(os.getcwd())
 
-    def closeAndExit(self):
+    def close(self):
         try:
             self.connection.close()
-            exit()
+        except Exception:
+            pass
+        exit()
+
+    def __del__(self):
+        try:
+            self.connection.close()
         except Exception:
             pass
 
