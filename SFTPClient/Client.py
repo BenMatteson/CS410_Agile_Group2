@@ -3,8 +3,6 @@ import paramiko
 import pysftp
 import ntpath
 import os
-from os.path import expanduser, isfile, exists, join
-from os import mkdir, remove
 from paramiko import ssh_exception
 from functools import wraps
 
@@ -18,12 +16,12 @@ class SFTP(object):
         self.username = username
         self.password = password
         self.private_key_password = private_key_password
-        if not exists(DOWNLOADS_DIRECTORY):
-            mkdir(DOWNLOADS_DIRECTORY)
-        self.local_directory = expanduser('~')
-        if exists(HISTORY_FILE):
-            remove(HISTORY_FILE)
+        self.local_directory = os.path.expanduser('~')
         self.connection = self.initiate_connection()
+        if not os.path.exists(DOWNLOADS_DIRECTORY):
+            os.mkdir(DOWNLOADS_DIRECTORY)
+        if os.path.exists(HISTORY_FILE):
+            os.remove(HISTORY_FILE)
 
     def is_connected(self):
         """Check the connection (using the listdir() method) to confirm that it's active."""
@@ -31,14 +29,14 @@ class SFTP(object):
 
     def log_history(func):
         @wraps(func)
-        def logged_func(*args):
-            if (len(args[1]) > 0):
+        def logged_func(self, args):
+            if (len(args) > 0):
                 with open(HISTORY_FILE, "a") as f:
-                    f.write(func.__name__ + " " + " ".join(str(arg) for arg in args[1]) + "\n")
+                    f.write(func.__name__ + " " + " ".join(str(arg) for arg in args) + "\n")
             else:
                 with open(HISTORY_FILE, "a") as f:
                     f.write(func.__name__ + "\n")
-            return func(*args)
+            return func(self, args)
         return logged_func
         
     # region Commands Section
@@ -46,12 +44,12 @@ class SFTP(object):
         return "pong" if self.connection.listdir() else "nothing happened"
 
     def history(self, args):
-        #TODO Return "" if HISTORY_FILE does not exist
+        """Return the current session's command history"""
         if len(args) != 0:
             raise TypeError('history takes exactly zero arguments (' + str(len(args)) + ' given)')
 
         command_history = ""
-        if isfile(HISTORY_FILE):
+        if os.path.isfile(HISTORY_FILE):
             with open(HISTORY_FILE, "r") as f:
                 command_history = f.read().strip()
         return command_history
@@ -80,6 +78,7 @@ class SFTP(object):
         else:
             raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
     
+    @log_history
     def rmdir(self, args):
         """
         Recursively delete a directory and all it's files and subdirectories
@@ -140,10 +139,10 @@ class SFTP(object):
             if len(args) is 1:
                 head, tail = ntpath.split(args[0])
                 remote_file = tail or ntpath.basename(head)
-                localpath = join(DOWNLOADS_DIRECTORY, remote_file)
+                localpath = os.path.join(DOWNLOADS_DIRECTORY, remote_file)
                 self.connection.get(args[0], localpath)
             elif len(args) is 2:
-                self.connection.get(args[0], expanduser(args[1]))
+                self.connection.get(args[0], os.path.expanduser(args[1]))
         else:
             raise IOError(f"The remote path '{args[0]}' is not a file")
 
@@ -152,7 +151,7 @@ class SFTP(object):
         target = None
         iter_args = iter(args)
         for arg in iter_args:
-            arg = expanduser(arg)
+            arg = os.path.expanduser(arg)
             if arg == '-t':
                 target = next(iter_args)
             elif os.path.isfile(arg):
@@ -207,11 +206,11 @@ class SFTP(object):
                 'cnopts': cnopts}
     
         # Determine what type of authentication to use based on parameters provided
-        ssh_key = expanduser('~') + '/.ssh/id_rsa'
+        ssh_key = os.path.expanduser('~') + '/.ssh/id_rsa'
         if self.password is not None:
             logging.debug('Using plaintext authentication')
             args['password'] = self.password
-        elif isfile(ssh_key):
+        elif os.path.isfile(ssh_key):
             logging.debug('Got SSH key: ' + ssh_key)
             # the file at ~/.ssh/id_rsa exists - use it as the (default) private key
             args['private_key'] = ssh_key
