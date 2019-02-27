@@ -10,6 +10,7 @@ from paramiko import ssh_exception
 
 DOWNLOADS_DIRECTORY = "downloads"
 
+
 class SFTP(object):
     def __init__(self, hostname, username, password=None, private_key_password=None):
         self.hostname = hostname
@@ -126,6 +127,18 @@ class SFTP(object):
         else:
             raise TypeError('rename() takes exactly two arguments (' + str(len(args)) + ' given)')
     # endregion
+
+    def lsl(self):
+        '''It does list all files and directories in your local machine. It will start with local folder where the
+         script exist'''
+        return os.listdir(os.getcwd())
+
+    def close(self):
+        try:
+            self.connection.close()
+        except Exception:
+            pass
+        exit()
 
     def __del__(self):
         try:

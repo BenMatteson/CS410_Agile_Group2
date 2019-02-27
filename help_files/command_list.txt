@@ -13,3 +13,5 @@ rm @ Remove remote file
 rm <file | path/to/file> @ Remove remote file
 rename <old> <new> @ rename a file or directory on remote server
 quit @ Quits the program
+lsl @ List all contents of the current work directory
+close @ Terminate the connection between the server and client 
