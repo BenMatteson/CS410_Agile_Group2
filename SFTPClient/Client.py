@@ -51,7 +51,23 @@ class SFTP(object):
             self.connection.chmod(args[0], int(args[1]))
         else:
             raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
+    
+    def rmdir(self, args):
+        """
+        Recursively delete a directory and all it's files and subdirectories
+        """
+        if len(args) != 1:
+            raise TypeError('rmdir() takes exactly one argument (' + str(len(args)) + ' given)')
 
+        if self.connection.isdir(args[0]):
+            dirs = []
+            self.connection.walktree(args[0], self.connection.remove, dirs.append, self.connection.remove)
+            for dir in reversed(dirs):
+                self.connection.rmdir(dir)
+            self.connection.rmdir(args[0])
+        else:
+            raise TypeError(f"Error: '{args[0]}' is not a directory")
+        
     def rm(self, args):
         """
             Remove file from remote path given by argument. Arg may include path ('/').
