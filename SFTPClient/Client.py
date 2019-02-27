@@ -46,12 +46,15 @@ class SFTP(object):
         return "pong" if self.connection.listdir() else "nothing happened"
 
     def history(self, args):
+        #TODO Return "" if HISTORY_FILE does not exist
         if len(args) != 0:
             raise TypeError('history takes exactly zero arguments (' + str(len(args)) + ' given)')
+
         command_history = ""
-        with open(HISTORY_FILE, "r") as f:
-            command_history = f.read()
-        return command_history.strip()
+        if isfile(HISTORY_FILE):
+            with open(HISTORY_FILE, "r") as f:
+                command_history = f.read().strip()
+        return command_history
 
     @log_history
     def ls(self, args):
@@ -144,6 +147,7 @@ class SFTP(object):
         else:
             raise IOError(f"The remote path '{args[0]}' is not a file")
 
+    @log_history
     def put(self, args):
         target = None
         iter_args = iter(args)
@@ -154,7 +158,7 @@ class SFTP(object):
             elif os.path.isfile(arg):
                 if target is not None:
                     try:
-                        self.mkdir([target])
+                        self.connection.mkdir(target)
                     except IOError:
                         pass  # already exists
                     self.connection.put(arg, target + '/' + os.path.basename(arg), preserve_mtime=True)

@@ -518,6 +518,8 @@ class MkdirCommandTestCase(SFTPTestCase):
         self.assertNotIn(split_path[0], dir_files)
 
 class LogHistoryTestCase(SFTPTestCase):
+    """LogHistoryTestCase class provides a unittest class used for testing the SFTP log_history decorator"""
+
     def setUp(self):
         if path.exists(HISTORY_FILE):
             remove(HISTORY_FILE)
@@ -570,6 +572,8 @@ class LogHistoryTestCase(SFTPTestCase):
 
 
 class HistoryCommandTestCase(SFTPTestCase):
+    """HistoryCommandTestCase class provides a unittest class used for testing the SFTP history command"""
+
     def setUp(self):
         if path.exists(HISTORY_FILE):
             remove(HISTORY_FILE)
@@ -594,11 +598,15 @@ class HistoryCommandTestCase(SFTPTestCase):
         self.sftp_client.ls(["Downloads"])
         self.sftp_client.mkdir([dir_name])
         self.sftp_client.chmod([dir_name, 777])
-        self.sftp_client.connection.execute(f"touch {dir_name}/file1.txt")
+        open("file1.txt", "w")
+        self.sftp_client.put(["file1.txt"])
+        open("file1.txt", "w")
+        self.sftp_client.put(["-t", dir_name, "file1.txt"])
         self.sftp_client.get([f"{dir_name}/file1.txt"])
         self.sftp_client.get([f"{dir_name}/file1.txt", "~/Desktop/file1.txt"])
         self.sftp_client.rm([f"{dir_name}/file1.txt"])
         self.sftp_client.connection.rmdir(f"{dir_name}")
+        self.sftp_client.rm(["file1.txt"])
         if path.exists("~/Desktop/file1.txt"):
             remove("~/Desktop/file1.txt")
         if path.exists(f"{DOWNLOADS_DIRECTORY}/file1.txt"):
@@ -609,6 +617,8 @@ class HistoryCommandTestCase(SFTPTestCase):
                    "ls Downloads\n"
                    f"mkdir {dir_name}\n"
                    f"chmod {dir_name} 777\n"
+                   "put file.txt\n"
+                   f"put -t {dir_name} file.txt\n"
                    f"get {dir_name}/file1.txt\n"
                    f"get {dir_name}/file1.txt ~/Desktop/file1.txt\n"
                    f"rm {dir_name}/file1.txt")
