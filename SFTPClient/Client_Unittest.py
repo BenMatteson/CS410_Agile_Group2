@@ -98,7 +98,7 @@ class Testlsl(Test_Client):
         mockgetcwd.return_value = "/Users/myCurrentDirectory"
         mocklistdir.side_effect = iter(["file1"])
         # actual
-        self.myClass.lsl()
+        self.myClass.lsl("args")
         # verify
         mocklistdir.assert_called_once_with("/Users/myCurrentDirectory")
 
@@ -133,7 +133,7 @@ class Testput(Test_Client):
 class TestcloseAndExit(Test_Client):
     def test_closeAndExit(self, mockexit):
         # actual
-        self.myClass.close()
+        self.myClass.close("args")
         #verify
         self.myClass.connection.close.assert_called_once_with()
         mockexit.assert_called_once_with()
