@@ -11,21 +11,29 @@ HISTORY_FILE = "command_history.txt"
 
 
 class SFTP(object):
-    def __init__(self, hostname, username, password=None, private_key_password=None):
+    def __init__(self, hostname=None, username=None, password=None, private_key_password=None):
         self.hostname = hostname
         self.username = username
         self.password = password
         self.private_key_password = private_key_password
         self.local_directory = os.path.expanduser('~')
-        self.connection = self.initiate_connection()
+        if self.hostname and self.username:
+            # if a username + hostname is provided, there's a chance that we can connect
+            self.connection = self.initiate_connection()
+        else:
+            # without a username + hostname, connection is impossible
+            self.connection = None
         if not os.path.exists(DOWNLOADS_DIRECTORY):
             os.mkdir(DOWNLOADS_DIRECTORY)
         if os.path.exists(HISTORY_FILE):
             os.remove(HISTORY_FILE)
 
+    def __str__(self):
+        return ', '.join("%s" % str(item) for item in vars(self).items())
+
     def is_connected(self):
         """Check the connection (using the listdir() method) to confirm that it's active."""
-        return True if self.connection.listdir() else False
+        return self.connection is not None
 
     def log_history(func):
         @wraps(func)
@@ -168,6 +176,33 @@ class SFTP(object):
 
             else:
                 raise FileNotFoundError("couldn't find the requested file")
+    
+    @log_history
+    def connect(self, args):
+        """This command allows a user to interactively connect to an SFTP server"""
+        logging.debug('connect() called with arguments: ' + str(arg) for arg in args)
+        # clear out any exiting connect settings
+        self.username = None
+        self.hostname = None
+        self.password = None
+        self.private_key_password = None
+        iter_args = iter(args)
+        for arg in iter_args:
+            if arg == '-U':
+                self.username = next(iter_args)
+            elif arg == '-H':
+                self.hostname = next(iter_args)
+            elif arg == '-P':
+                self.password = next(iter_args)
+            elif arg == '-p':
+                self.private_key_password = next(iter_args)
+            else:
+                raise TypeError('connect() received an invalid argument: "' + str(arg) + '")')
+
+        self.connection = self.initiate_connection()
+
+    
+    
     # endregion
 
     def lsl(self):
@@ -189,6 +224,11 @@ class SFTP(object):
             pass
 
     def initiate_connection(self):
+        if not self.hostname:
+            raise TypeError('initiate_connection(): hostname is required')
+        elif not self.username:
+            raise TypeError('initiate_connection(): username is required')
+
         # Connect, checking hostkey or caching on first connect
         # Based off of this stackoverflow question:
         #     https://stackoverflow.com/questions/53666106/use-paramiko-autoaddpolicy-with-pysftp

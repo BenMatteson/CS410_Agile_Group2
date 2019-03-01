@@ -1,0 +1,4 @@
+connect -H <host> -U <user> [-P <pass>|-p <private_key_pass>] @ Connect as <user>@<host> using the chosen authentication method.
+Connect to an SFTP server
+
+

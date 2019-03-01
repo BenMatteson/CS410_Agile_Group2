@@ -2,6 +2,8 @@
 import argparse
 import logging
 import warnings
+import shlex
+import getpass
 
 import paramiko
 
@@ -10,6 +12,7 @@ from SFTPClient import Client
 HELP_COMMAND_SPACING = 35  # Max length(+1) of sample commands in help files
 HELP_FILE_LOCATION = "help_files/"
 
+MAX_AUTH_TRIES = 3
 
 class ExitRequested(Exception):
     pass
@@ -20,36 +23,59 @@ def main():
 
     if args['verbose']:
         logging.basicConfig(level=logging.DEBUG)
-    host_name = args['host']
-    user_name = args['username']
 
-    password = None
-    if 'password' in args and args['password'] is not None:
-        # the user supplied password input
-        password = args['password']
-
-    private_key_password = None
-    if 'private_key_password' in args and args['private_key_password'] is not None:
-        # the user supplied private key password input
-        private_key_password = args['private_key_password']
-
-    try:
-        cli = SFTPCLI(host_name, user_name, password, private_key_password)
-    except paramiko.SSHException:
-        print("Unable to connect, please check user and server info.")
-        return 1
-
+    cli = None
     prompt = True
     while prompt:
         try:
+            if cli is None:
+                # attempt to connect using whatever arguments we've got
+                cli = SFTPCLI(Client.SFTP(args['host'], args['username'], args['password'], args['private_key_password']))
             command = input('> ')
             # execute command, handle result accordingly.
-            result = cli.execute_command(command)
-            if isinstance(result, list):
-                for item in result:
-                    print(item)
-            elif isinstance(result, str):
-                print(result)
+            if command:
+                result = cli.execute_command(command)
+                if isinstance(result, list):
+                    for item in result:
+                        print(item)
+                elif isinstance(result, str):
+                    print(result)
+        except (paramiko.SSHException) as e:
+            if str(e) == 'not a valid DSA private key file':
+                # potentially an encrypted private key?
+                # prompt the user for the private key password a few times
+                logging.debug('Private key is encrypted - prompting for password...')
+                for i in range(0,MAX_AUTH_TRIES):
+                    print("CLI: " + str(cli))
+                    print("SFTP: " + str(cli.sftp))
+                    try:
+                        private_key_password = getpass.getpass("Enter passphrase for private key:")
+                        cli.sftp.private_key_password = private_key_password
+                        cli.sftp.connection = cli.sftp.initiate_connection()
+                    except (paramiko.SSHException):
+                        # wrong password?
+                        pass
+                    if cli.sftp is not None and cli.sftp.is_connected():
+                        break
+            
+                # if public key auth fails, prompt the user for the plaintext password
+                if cli.sftp.connection is None:
+                    logging.debug('Public key authentication failed - falling back to password auth...')
+                    for i in range(0,MAX_AUTH_TRIES):
+                        try:
+                            password = getpass.getpass()
+                            # attempt to connect
+                            cli.sftp.password = password
+                            cli.sftp.connection = cli.sftp.initiate_connection()
+                        except (paramiko.SSHException):
+                            # wrong password?
+                            cli.sftp.password = None
+                        if cli.sftp is not None and cli.sftp.is_connected():
+                            break
+                    break
+            else:
+                print(e)
+                continue
         except (ValueError, FileNotFoundError, TypeError, PermissionError, IOError) as e:
             print(e)
             continue
@@ -61,8 +87,8 @@ def main():
 
 def capture_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-H', '--host', help='Input host name', required=True)
-    parser.add_argument('-U', '--username', help='input username', required=True)
+    parser.add_argument('-H', '--host', help='Input host name', required=False)
+    parser.add_argument('-U', '--username', help='input username', required=False)
     parser.add_argument('-P', '--password', help='input password', required=False)
     parser.add_argument('-p', '--private_key_password', help='Passphrase required to decrypt private key', required=False)
     parser.add_argument('-v', '--verbose', help='Verbose logging', required=False, action='store_true')
@@ -72,23 +98,24 @@ def capture_arguments():
 
 
 class SFTPCLI(object):
-    def __init__(self, hostname, username, password=None, private_key_password=None):
-        self.sftp = Client.SFTP(hostname, username, password, private_key_password)
-        print("Connection Successful!\n"
-              "Type a command or 'help' to see available commands")
+    def __init__(self, sftp=None):
+        self.sftp = sftp
 
     def execute_command(self, cmd):
         """Find and execute the command"""
         cli_commands = {'help', 'quit'}
-        parts = cmd.split(' ')
+        parts = shlex.split(cmd)
         if cli_commands.__contains__(parts[0]):
             return getattr(self, parts[0])(parts[1:])
         else:
-            try:
-                temp = getattr(self.sftp, parts[0])(parts[1:])
-                return temp
-            except AttributeError as e:
-                raise ValueError("Command not found, try 'help'") from e
+            if parts[0] == 'connect' or self.sftp is not None and self.sftp.is_connected():
+                try:
+                    temp = getattr(self.sftp, parts[0])(parts[1:])
+                    return temp
+                except AttributeError as e:
+                    raise ValueError("Command not found, try 'help'") from e
+            else:
+                print("Not connected - see 'help connect'")
 
     def help(self, args):
         """Show command list, or help file for requested command"""
