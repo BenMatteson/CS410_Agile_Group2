@@ -12,4 +12,7 @@ put -t <target_dir> <file_name [<file_name> ...] @ Put the given file(s) to the 
 rm @ Remove remote file
 rm <file | path/to/file> @ Remove remote file
 rmdir <remotepath> @ Delete a directory and its contents
+cd @ Change remote directory
+cd <path | path/to/dir> @ Change remote directory
+pwd @ Print the remote working path. Takes no arguments
 quit @ Quits the program

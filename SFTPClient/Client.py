@@ -50,7 +50,7 @@ class SFTP(object):
             self.connection.chmod(args[0], int(args[1]))
         else:
             raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
-    
+
     def rmdir(self, args):
         """
         Recursively delete a directory and all it's files and subdirectories
@@ -66,7 +66,7 @@ class SFTP(object):
             self.connection.rmdir(args[0])
         else:
             raise TypeError(f"Error: '{args[0]}' is not a directory")
-        
+
     def rm(self, args):
         """
             Remove file from remote path given by argument. Arg may include path ('/').
@@ -135,6 +135,24 @@ class SFTP(object):
 
             else:
                 raise FileNotFoundError("couldn't find the requested file")
+
+    def cd(self, args):
+        """ Changes the remote directory to the specified path """
+        if len(args) != 1:
+            raise TypeError("Usage: cd [path | path/to/dirname]")
+        else:
+            if self.connection.isdir(args[0]):
+                self.connection.chdir(args[0])
+            else:
+                raise TypeError("Error: path is not a directory")
+
+    def pwd(self, args):
+        """ Prints the remote working directory """
+        if len(args) > 0:
+            raise TypeError("Usage: pwd")
+        else:
+            path = self.connection.pwd
+            print(path)
     # endregion
 
     def __del__(self):
@@ -147,7 +165,7 @@ class SFTP(object):
         # Connect, checking hostkey or caching on first connect
         # Based off of this stackoverflow question:
         #     https://stackoverflow.com/questions/53666106/use-paramiko-autoaddpolicy-with-pysftp
-    
+
         # configure pysftp CnOpts
         hostkeys = None
         cnopts = pysftp.CnOpts()  # loads hostkeys from known_hosts.ssh
@@ -155,11 +173,11 @@ class SFTP(object):
             logging.debug('Key for host: ' + self.hostname + ' was not found in known_hosts')
             hostkeys = cnopts.hostkeys
             cnopts.hostkeys = None
-    
+
         args = {'host': self.hostname,
                 'username': self.username,
                 'cnopts': cnopts}
-    
+
         # Determine what type of authentication to use based on parameters provided
         ssh_key = expanduser('~') + '/.ssh/id_rsa'
         if self.password is not None:
@@ -177,7 +195,7 @@ class SFTP(object):
         else:
             raise ssh_exception.BadAuthenticationType('No supported authentication methods available',
                                                       ['password', 'public_key'])
-    
+
         # connect using the authentication type determined above
         logging.debug('Connecting using arguments: ' + str(args))
         try:
@@ -185,12 +203,12 @@ class SFTP(object):
         except paramiko.SSHException as e:
             logging.critical(e)
             raise
-    
+
         # On first connect, Save the new hostkey to known_hosts
         if hostkeys is not None:
             logging.debug('Appending new hostkey for ' + self.hostname + ' to known_hosts, and writing to disk...')
             hostkeys.add(self.hostname, connection.remote_server_key.get_name(),
                          connection.remote_server_key)
             hostkeys.save(pysftp.helpers.known_hosts())
-    
+
         return connection

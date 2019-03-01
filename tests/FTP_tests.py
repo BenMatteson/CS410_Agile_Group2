@@ -390,7 +390,7 @@ class RmdirCommandTestCase(SFTPTestCase):
         dir1 = "SFTP_test_rmdir_two_nested_dirs_dir1"
         self.sftp_client.connection.mkdir(dir1)
         self.assertTrue(self.sftp_client.connection.isdir(dir1))
-        
+
         # Create second directory
         dir2 = "SFTP_test_rmdir_two_nested_dirs_dir2"
         self.sftp_client.connection.mkdir(f"{dir1}/{dir2}")
@@ -409,7 +409,7 @@ class RmdirCommandTestCase(SFTPTestCase):
         dir1 = "SFTP_test_rmdir_multiple_nested_dirs"
         self.sftp_client.connection.mkdir(dir1)
         self.assertTrue(self.sftp_client.connection.isdir(dir1))
-        
+
         # Create directories inside the root
         for i in range(1,5):
             self.sftp_client.connection.makedirs(f"{dir1}/a/b/c/dir{i}")
@@ -428,7 +428,7 @@ class RmdirCommandTestCase(SFTPTestCase):
         dir1 = "SFTP_test_rmdir_multiple_nested_dirs_and_files"
         self.sftp_client.connection.mkdir(dir1)
         self.assertTrue(self.sftp_client.connection.isdir(dir1))
-        
+
         # Create directories inside the root
         for i in range(1,5):
             self.sftp_client.connection.makedirs(f"{dir1}/a/b/c/dir{i}")
@@ -548,6 +548,52 @@ class PutCommandTestCase(SFTPTestCase):
         remove(test_file)
 
 
+class CdCommandTestCase(SFTPTestCase):
+    """ CdCommandTestCase class provides unittests for the cd (remote) command"""
+
+    def test_cd_valid_path(self):
+        """ Tests cd remote command against a valid directory path """
+        dir_path = "dunkelheit"
+        self.sftp_client.mkdir(dir_path)
+        self.sftp_client.cd(dir_path)
+        cur_path = self.sftp_client.pwd()
+        self.assertTrue(dir_path in cur_path)
+        self.sftp_client.cd('..')
+        self.sftp_client.rmdir(dir_path)
+
+
+
+    def test_cd_invalid_path(self):
+        """ Tests cd remote command against an inavlid path """
+        with self.assertRaises(TypeError):
+            self.sftp_client.cd('afhsadfha')
+
+
+    def test_cd_no_args(self):
+        """ Tests cd remote command with no args """
+        with self.assertRaises(TypeError):
+            self.sftp_client.cd()
+
+    def test_cd_too_many_args(self):
+        """ Tests cd remote command with too many args """
+        with self.assertRaises(TypeError):
+            self.sftp_client.cd("RIP Earth")
+
+
+class PwdCommandTestCase(SFTPTestCase):
+    """ PwdCommandTestCase class provides unittests for the pwd (remote) command """
+
+    def test_pwd_no_args(self):
+        """ Tests pwd command with no args (the correct number of args) """
+        cur_path = self.sftp_client.pwd()
+        self.assertTrue(cur_path)
+
+
+    def test_pwd_with_args(self):
+        """ Tests pwd command with args """
+        with self.assertRaises(TypeError):
+            self.sftp_client.pwd("Mustard")
+
 def suite():
     suite = unittest.TestSuite()
 
@@ -586,7 +632,7 @@ def suite():
     suite.addTest(GetCommandTestCase('test_get_two_arg_no_such_remote_file'))
     suite.addTest(GetCommandTestCase('test_get_two_arg_no_such_localpath'))
     suite.addTest(GetCommandTestCase('test_get_three_arg'))
-    
+
     suite.addTest(RmdirCommandTestCase('test_rmdir_zero_arg'))
     suite.addTest(RmdirCommandTestCase('test_rmdir_two_arg'))
     suite.addTest(RmdirCommandTestCase('test_rmdir_no_such_dir'))
@@ -597,7 +643,7 @@ def suite():
     suite.addTest(RmdirCommandTestCase('test_rmdir_two_nested_dirs'))
     suite.addTest(RmdirCommandTestCase('test_rmdir_multiple_nested_dirs'))
     suite.addTest(RmdirCommandTestCase('test_rmdir_multiple_nested_dirs_and_files'))
-    
+
     return suite
 
 
