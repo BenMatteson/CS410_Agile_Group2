@@ -7,7 +7,7 @@ import paramiko
 
 from SFTPClient import Client
 
-HELP_COMMAND_SPACING = 35  # Max length(+1) of sample commands in help files
+HELP_COMMAND_SPACING = 50  # Max length(+1) of sample commands in help files
 HELP_FILE_LOCATION = "help_files/"
 
 
