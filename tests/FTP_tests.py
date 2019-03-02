@@ -41,7 +41,6 @@ class SFTPTestCase(unittest.TestCase):
         else:
             # by default, perform public key authentication
             cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'private_key_password':cls.private_key_password}
-            #cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}
 
         # initialize sftp_client
         cls.sftp_client = SFTP(**cls.sftp_args)
@@ -657,7 +656,7 @@ class RenameCommandTestCase(SFTPTestCase):
         self.sftp_client.rename([file_name, rename_file])
         dir_files = self.sftp_client.ls([])
         self.assertTrue(rename_file in dir_files)
-        #self.sftp_client.connection.remove(rename_file)
+        self.sftp_client.rmdir([rename_file])
 
     def test_rename_nested(self):
         """Test rename command with path 'nested/dir/dir_name"""
@@ -669,7 +668,7 @@ class RenameCommandTestCase(SFTPTestCase):
         self.sftp_client.rename([full_path, rename_full_path])
         dir_files = self.sftp_client.ls([split_path[0]])
         self.assertIn(split_path[1], dir_files)
-        #self.sftp_client.connection.remove(['rename'])
+        self.sftp_client.rmdir(['rename'])
 
     def test_rename_three_arg(self):
         """Test rename command with three arguments"""
