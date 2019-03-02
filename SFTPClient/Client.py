@@ -213,47 +213,47 @@ class SFTP(object):
                 tmp_d = tempfile.gettempdir()
                 local_d = os.path.join(tmp_d, os.path.basename(args[0]))
                 logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
+                try:
+                    # get the contents of the remote directory into the temporary folder
+                    if len(self.connection.listdir(args[0])) > 0:
+                        # if the source folder is empty, paramiko (or pysftp?) will not actually do a get_r(),
+                        # but still reports success. This is an issue, and is being addressed by creating that folder manually
+                        logging.debug('Starting get...')
+                        self.connection.get_r(args[0], tmp_d, preserve_mtime=True)
+                        logging.debug('Copied ' + os.path.basename(args[0]) + ' to ' + tmp_d)
+                    else:
+                        logging.debug('Creating empty directory at: ' + os.path.join(tmp_d, args[0]) + '...')
+                        os.mkdir(os.path.join(tmp_d, args[0]))
 
-                # get the contents of the remote directory into the temporary folder
-                if len(self.connection.listdir(args[0])) > 0:
-                    # if the source folder is empty, paramiko (or pysftp?) will not actually do a get_r(),
-                    # but still reports success. This is an issue, and is being addressed by creating that folder manually
-                    logging.debug('Starting get...')
-                    self.connection.get_r(args[0], tmp_d, preserve_mtime=True)
-                    logging.debug('Copied ' + os.path.basename(args[0]) + ' to ' + tmp_d)
-                else:
-                    logging.debug('Creating empty directory at: ' + os.path.join(tmp_d, args[0]) + '...')
-                    os.mkdir(os.path.join(tmp_d, args[0]))
+                    if nest_d:
+                        # if the target directory exists, copy the source into the destination
+                        moved_local_d = local_d
+                    else:
+                        # if the target directory doesn't exist, copy the source directory to that path
+                        moved_local_d = os.path.join(tmp_d, os.path.basename(remote_d))
+                        logging.debug('Moving ' + local_d + ' to: ' + moved_local_d + '...')
+                        os.rename(local_d, os.path.join(tmp_d, moved_local_d))
 
-                if nest_d:
-                    # if the target directory exists, copy the source into the destination
-                    moved_local_d = local_d
-                else:
-                    # if the target directory doesn't exist, copy the source directory to that path
-                    moved_local_d = os.path.join(tmp_d, os.path.basename(remote_d))
-                    logging.debug('Moving ' + local_d + ' to: ' + moved_local_d + '...')
-                    os.rename(local_d, os.path.join(tmp_d, moved_local_d))
+                    # get the remote directory path so that it can be passed to put_r
+                    cwd = self.connection.pwd
+                    logging.debug('Remote working directory: ' + cwd)
+                    remote_path = os.path.join(cwd, remote_d)
 
-                # get the remote directory path so that it can be passed to put_r
-                cwd = self.connection.pwd
-                logging.debug('Remote working directory: ' + cwd)
-                remote_path = os.path.join(cwd, remote_d)
+                    # create the remote directory (if it doesn't exist)
+                    if not self.connection.exists(remote_path):
+                        logging.debug('Creating remote directory: ' + remote_path + '...')
+                        self.connection.mkdir(remote_path)
 
-                # create the remote directory (if it doesn't exist)
-                if not self.connection.exists(remote_path):
-                    logging.debug('Creating remote directory: ' + remote_path + '...')
-                    self.connection.mkdir(remote_path)
-
-                # put the contents ofthe temporary
-                logging.debug('Starting put of src: ' + os.path.join(tmp_d, os.path.basename(remote_d)) + ' dst: ' + remote_path)
-                self.connection.put_r(os.path.join(tmp_d, os.path.basename(remote_d)), remote_path, preserve_mtime=True)
-
-                # cleanup the local temporary directories
-                logging.debug('Starting cleanup...')
-                if os.path.exists(moved_local_d):
-                    shutil.rmtree(moved_local_d)
-                if os.path.exists(local_d):
-                    shutil.rmtree(local_d)
+                    # put the contents ofthe temporary
+                    logging.debug('Starting put of src: ' + os.path.join(tmp_d, os.path.basename(remote_d)) + ' dst: ' + remote_path)
+                    self.connection.put_r(os.path.join(tmp_d, os.path.basename(remote_d)), remote_path, preserve_mtime=True)
+                finally:
+                    # cleanup the local temporary directories
+                    logging.debug('Starting cleanup...')
+                    if os.path.exists(moved_local_d):
+                        shutil.rmtree(moved_local_d)
+                    if os.path.exists(local_d):
+                        shutil.rmtree(local_d)
             else:
                raise IOError('cp: ' + args[0] + ': No such file or directory')
         else:
