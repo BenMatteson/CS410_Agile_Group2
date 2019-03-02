@@ -554,7 +554,6 @@ class LogHistoryTestCase(SFTPTestCase):
         self.sftp_client.chmod([dir_name, 777])
         open(file_name, "w")
         self.sftp_client.put([file_name])
-        open(file_name, "w")
         self.sftp_client.put(["-t", dir_name, file_name])
         self.sftp_client.connection.execute(f"touch {dir_name}/{file_name}")
         self.sftp_client.get([f"{dir_name}/{file_name}"])
@@ -609,25 +608,7 @@ class HistoryCommandTestCase(SFTPTestCase):
         """Test history command with every SFTP command"""
         dir_name = "test_log_history_multiple_commands"
         file_name = "file2.txt"
-        self.sftp_client.ls([])
-        self.sftp_client.ls(["Downloads"])
-        self.sftp_client.mkdir([dir_name])
-        self.sftp_client.chmod([dir_name, 777])
-        open(file_name, "w")
-        self.sftp_client.put([file_name])
-        open(file_name, "w")
-        self.sftp_client.put(["-t", dir_name, file_name])
-        self.sftp_client.get([f"{dir_name}/{file_name}"])
-        self.sftp_client.get([f"{dir_name}/{file_name}", f"~/Desktop/{file_name}"])
-        self.sftp_client.rm([f"{dir_name}/{file_name}"])
-        self.sftp_client.connection.rmdir(f"{dir_name}")
-        self.sftp_client.rm([file_name])
-        os.remove(file_name)
-        os.remove(os.path.expanduser(f"~/Desktop/{file_name}"))
-        os.remove(f"{DOWNLOADS_DIRECTORY}/{file_name}")
-
-        command_history = self.sftp_client.history([])
-        expected = ("ls\n"
+        file_text = ("ls\n"
                    "ls Downloads\n"
                    f"mkdir {dir_name}\n"
                    f"chmod {dir_name} 777\n"
@@ -636,8 +617,12 @@ class HistoryCommandTestCase(SFTPTestCase):
                    f"get {dir_name}/{file_name}\n"
                    f"get {dir_name}/{file_name} ~/Desktop/{file_name}\n"
                    f"rm {dir_name}/{file_name}\n"
-                   f"rm {file_name}")
-        self.assertEqual(command_history, expected) 
+                   f"rm {file_name}\n")
+
+        with open(HISTORY_FILE, "w") as f:
+            f.write(file_text)
+        command_history = self.sftp_client.history([])
+        self.assertEqual(command_history, file_text.strip()) 
 
 
 class PutCommandTestCase(SFTPTestCase):
