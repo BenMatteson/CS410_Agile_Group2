@@ -3,8 +3,6 @@ import paramiko
 import pysftp
 import ntpath
 import os
-from os.path import expanduser, isfile, exists, join, basename, dirname
-from os import mkdir
 
 from paramiko import ssh_exception
 from functools import wraps
@@ -189,7 +187,7 @@ class SFTP(object):
             if self.connection.exists(args[0]):
                 if self.connection.exists(args[1]) and self.connection.isdir(args[1]):
                     # the remote destination directory exists - copy the source directory into that one
-                    remote_d = os.path.join(args[1], basename(args[0]))
+                    remote_d = os.path.join(args[1], os.path.basename(args[0]))
                     nest_d = True
                 elif self.connection.exists(args[1]) and self.connection.isfile(args[1]):
                     # the remote destination is a file - bail
@@ -201,7 +199,7 @@ class SFTP(object):
                 try:
                     # setup local vars
                     tmp_d = tempfile.gettempdir()
-                    local_d = os.path.join(tmp_d, basename(args[0]))
+                    local_d = os.path.join(tmp_d, os.path.basename(args[0]))
                     logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
                     
                     # get the contents of the remote directory into the temporary folder
@@ -210,7 +208,7 @@ class SFTP(object):
                         # but still reports success. This is an issue, and is being addressed by creating that folder manually
                         logging.debug('Starting get...')
                         self.connection.get_r(args[0], tmp_d, preserve_mtime=True)
-                        logging.debug('Copied ' + basename(args[0]) + ' to ' + tmp_d)
+                        logging.debug('Copied ' + os.path.basename(args[0]) + ' to ' + tmp_d)
                     else:
                         logging.debug('Creating empty directory at: ' + os.path.join(tmp_d, args[0]) + '...')
                         os.mkdir(os.path.join(tmp_d, args[0]))
@@ -220,7 +218,7 @@ class SFTP(object):
                         moved_local_d = local_d
                     else:
                         # if the target directory doesn't exist, copy the source directory to that path
-                        moved_local_d = os.path.join(tmp_d, basename(remote_d))
+                        moved_local_d = os.path.join(tmp_d, os.path.basename(remote_d))
                         logging.debug('Moving ' + local_d + ' to: ' + moved_local_d + '...')
                         os.rename(local_d, os.path.join(tmp_d, moved_local_d))
                     
@@ -235,8 +233,8 @@ class SFTP(object):
                         self.connection.mkdir(remote_path)
                     
                     # put the contents ofthe temporary
-                    logging.debug('Starting put of src: ' + os.path.join(tmp_d, basename(remote_d)) + ' dst: ' + remote_path)
-                    self.connection.put_r(os.path.join(tmp_d, basename(remote_d)), remote_path, preserve_mtime=True)
+                    logging.debug('Starting put of src: ' + os.path.join(tmp_d, os.path.basename(remote_d)) + ' dst: ' + remote_path)
+                    self.connection.put_r(os.path.join(tmp_d, os.path.basename(remote_d)), remote_path, preserve_mtime=True)
                 except Exception as e:
                     raise(e)
                 finally:
