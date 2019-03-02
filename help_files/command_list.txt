@@ -1,4 +1,6 @@
 chmod <remotepath> <mode> @ Set the permissions of <remotepath> to <mode>
+cp <src> <dst> @ Copy the remote <src> directory to <dst> using SFTP
+cp_r <src> <dst> @ Copy the remote <src> directory to <dst> using SSH/bash
 get <remotepath> @ Download a remote file to the downloads directory
 get <remotepath> <localpath> @ Download a remote file to the specified directory
 help @ Show help file (You Are Here)
