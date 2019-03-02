@@ -1,0 +1,1 @@
+history @ Show this session's command history
