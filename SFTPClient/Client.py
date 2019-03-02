@@ -30,7 +30,6 @@ class SFTP(object):
         """Check the connection (using the listdir() method) to confirm that it's active."""
         return True if self.connection.listdir() else False
 
-    @staticmethod
     def log_history(func):
         """A decorator function for logging command history each time a command is executed"""
         @wraps(func)
