@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import sys
-from os import path, remove, rmdir
+import os
+import shutil
 import unittest
-
 import warnings
 import argparse
 
 # fix for running as script?
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from SFTPClient.Client import SFTP
-from SFTPClient.Client import DOWNLOADS_DIRECTORY
+from SFTPClient.Client import DOWNLOADS_DIRECTORY, HISTORY_FILE
 from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
 
 
@@ -49,8 +49,8 @@ class SFTPTestCase(unittest.TestCase):
     def tearDownClass(cls):
         # TODO: should we perform a proper disconnect when doing a tearDown()?
         cls.sftp_client = None
-        if path.exists(DOWNLOADS_DIRECTORY):
-            rmdir(DOWNLOADS_DIRECTORY)
+        if os.path.exists(DOWNLOADS_DIRECTORY):
+            shutil.rmtree(DOWNLOADS_DIRECTORY)
 
 
 class PlaintextAuthenticationTestCase(SFTPTestCase):
@@ -226,7 +226,7 @@ class GetCommandTestCase(SFTPTestCase):
         # Test the get command with one argument to:
         #  confirm that the remote file is downloaded to DOWNLOADS_DIRECTORY
         file_name = "SFTP_test_get_one_arg.txt"
-        localpath = path.join(DOWNLOADS_DIRECTORY, file_name)
+        localpath = os.path.join(DOWNLOADS_DIRECTORY, file_name)
         self.sftp_client.connection.execute(f"printf '{file_name}' > {file_name}")
         self.sftp_client.get([file_name])
         file_text = None
@@ -234,7 +234,7 @@ class GetCommandTestCase(SFTPTestCase):
             file_text = f.read()
         self.assertEqual(file_name, file_text)
         self.sftp_client.connection.remove(file_name)
-        remove(localpath)
+        os.remove(localpath)
 
     def test_get_one_arg_no_such_remote_file(self):
         """Test get command with one invalid argument"""
@@ -249,7 +249,7 @@ class GetCommandTestCase(SFTPTestCase):
         # Test the get command with two argument to:
         #  confirm that the remote file is downloaded to the localpath
         file_name = "SFTP_test_get_two_arg.txt"
-        localpath = path.expanduser(path.join('~', 'Desktop', file_name))
+        localpath = os.path.expanduser(os.path.join('~', 'Desktop', file_name))
         self.sftp_client.connection.execute(f"printf '{file_name}' > {file_name}")
         self.sftp_client.get([file_name, localpath])
         file_text = None
@@ -257,14 +257,14 @@ class GetCommandTestCase(SFTPTestCase):
             file_text = f.read()
         self.assertEqual(file_name, file_text)
         self.sftp_client.connection.remove(file_name)
-        remove(localpath)
+        os.remove(localpath)
 
     def test_get_two_arg_no_such_remote_file(self):
         """Test get command with two arguments where the first is an invalid remotepath"""
         # Test the get command with an invalid remotepath to:
         #  confirm that the test will fail with an IOError exception
         file_name = "SFTP_this_file_does_not_exist.txt"
-        localpath = path.expanduser(path.join('~', 'Desktop', file_name))
+        localpath = os.path.expanduser(os.path.join('~', 'Desktop', file_name))
         with self.assertRaises(IOError):
             self.sftp_client.get([file_name, localpath])
 
@@ -273,7 +273,7 @@ class GetCommandTestCase(SFTPTestCase):
         # Test the get command with an invalid localpath to:
         #  confirm that the test will fail with an IOError exception
         file_name = "SFTP_test_get_two_arg_no_such_localpath.txt"
-        localpath = path.join("SFTP","this", "localpath", "does", "not", "exist")
+        localpath = os.path.join("SFTP","this", "localpath", "does", "not", "exist")
         self.sftp_client.connection.execute(f"printf '{file_name}' > {file_name}")
         with self.assertRaises(IOError):
             self.sftp_client.get([file_name, localpath])
@@ -517,6 +517,113 @@ class MkdirCommandTestCase(SFTPTestCase):
         dir_files = self.sftp_client.ls([])
         self.assertNotIn(split_path[0], dir_files)
 
+class LogHistoryTestCase(SFTPTestCase):
+    """LogHistoryTestCase class provides a unittest class used for testing the SFTP log_history decorator"""
+
+    def setUp(self):
+        if os.path.exists(HISTORY_FILE):
+            os.remove(HISTORY_FILE)
+        
+    def tearDown(self):
+        if os.path.exists(HISTORY_FILE):
+            os.remove(HISTORY_FILE)
+
+    def test_log_history_ls_no_arg(self):
+        """Test log_history with zero arguments to ls"""
+        self.sftp_client.ls([])
+        file_text = ""
+        with open(HISTORY_FILE, "r") as f:
+            file_text = f.read()
+        self.assertEqual(file_text, "ls\n") 
+        
+    def test_log_history_ls_one_arg(self):
+        """Test log_history with one arguments to ls"""
+        self.sftp_client.ls(['Downloads'])
+        file_text = ""
+        with open(HISTORY_FILE, "r") as f:
+            file_text = f.read()
+        self.assertEqual(file_text, "ls Downloads\n") 
+
+    def test_log_history_multiple_commands(self):
+        """Test log_history with every SFTP command"""
+        dir_name = "test_log_history_multiple_commands"
+        file_name = "file1.txt"
+        self.sftp_client.ls([])
+        self.sftp_client.ls(["Downloads"])
+        self.sftp_client.mkdir([dir_name])
+        self.sftp_client.chmod([dir_name, 777])
+        open(file_name, "w")
+        self.sftp_client.put([file_name])
+        self.sftp_client.put(["-t", dir_name, file_name])
+        self.sftp_client.connection.execute(f"touch {dir_name}/{file_name}")
+        self.sftp_client.get([f"{dir_name}/{file_name}"])
+        self.sftp_client.get([f"{dir_name}/{file_name}", f"~/Desktop/{file_name}"])
+        self.sftp_client.rm([f"{dir_name}/{file_name}"])
+        self.sftp_client.rm([file_name])
+        self.sftp_client.connection.rmdir(f"{dir_name}")
+        os.remove(file_name)
+        os.remove(os.path.expanduser(f"~/Desktop/{file_name}"))
+        os.remove(f"{DOWNLOADS_DIRECTORY}/{file_name}")
+
+        file_text = ""
+        expected = ("ls\n"
+                   "ls Downloads\n"
+                   f"mkdir {dir_name}\n"
+                   f"chmod {dir_name} 777\n"
+                   f"put {file_name}\n"
+                   f"put -t {dir_name} {file_name}\n"
+                   f"get {dir_name}/{file_name}\n"
+                   f"get {dir_name}/{file_name} ~/Desktop/{file_name}\n"
+                   f"rm {dir_name}/{file_name}\n"
+                   f"rm {file_name}\n")
+        with open(HISTORY_FILE, "r") as f:
+            file_text = f.read()
+        self.assertEqual(file_text, expected) 
+
+
+class HistoryCommandTestCase(SFTPTestCase):
+    """HistoryCommandTestCase class provides a unittest class used for testing the SFTP history command"""
+
+    def setUp(self):
+        if os.path.exists(HISTORY_FILE):
+            os.remove(HISTORY_FILE)
+        
+    def tearDown(self):
+        if os.path.exists(HISTORY_FILE):
+            os.remove(HISTORY_FILE)
+
+    def test_history_ls_no_arg(self):
+        """Test history command with zero arguments to ls"""
+        self.sftp_client.ls([])
+        command_history = self.sftp_client.history([])
+        self.assertEqual(command_history, "ls") 
+        
+    def test_history_ls_one_arg(self):
+        """Test history command with one argument to ls"""
+        self.sftp_client.ls(["Downloads"])
+        command_history = self.sftp_client.history([])
+        self.assertEqual(command_history, "ls Downloads") 
+
+    def test_history_multiple_commands(self):
+        """Test history command with every SFTP command"""
+        dir_name = "test_log_history_multiple_commands"
+        file_name = "file2.txt"
+        file_text = ("ls\n"
+                   "ls Downloads\n"
+                   f"mkdir {dir_name}\n"
+                   f"chmod {dir_name} 777\n"
+                   f"put {file_name}\n"
+                   f"put -t {dir_name} {file_name}\n"
+                   f"get {dir_name}/{file_name}\n"
+                   f"get {dir_name}/{file_name} ~/Desktop/{file_name}\n"
+                   f"rm {dir_name}/{file_name}\n"
+                   f"rm {file_name}\n")
+
+        with open(HISTORY_FILE, "w") as f:
+            f.write(file_text)
+        command_history = self.sftp_client.history([])
+        self.assertEqual(command_history, file_text.strip()) 
+
 
 class PutCommandTestCase(SFTPTestCase):
     def test_put_file_not_found(self):
@@ -530,22 +637,22 @@ class PutCommandTestCase(SFTPTestCase):
         self.sftp_client.put([self.test_file_name])
         result = self.sftp_client.ls([])
         self.assertIn(self.test_file_name, result)
-        # self.sftp_client.rm([self.test_file_name])
-        remove(self.test_file_name)
+        self.sftp_client.rm([self.test_file_name])
+        os.remove(self.test_file_name)
 
     def test_put_file_target(self):
         test_folder = 'someTestFolder'
         test_file = 'someTestFile'
-        # remote = self.sftp_client.ls()
-        # self.assertNotIn(test_folder, remote)
+        remote = self.sftp_client.ls([])
+        self.assertNotIn(test_folder, remote)
         open(test_file, 'w')
         self.sftp_client.put(['-t', test_folder, test_file])
         remote = self.sftp_client.ls([])
         self.assertIn(test_folder, remote)
         inner = self.sftp_client.ls([test_folder])
         self.assertIn(test_file, inner)
-        # self.sftp_client.rmdir([test_folder]
-        remove(test_file)
+        self.sftp_client.rmdir([test_folder])
+        os.remove(test_file)
 
 
 def suite():
@@ -598,6 +705,14 @@ def suite():
     suite.addTest(RmdirCommandTestCase('test_rmdir_multiple_nested_dirs'))
     suite.addTest(RmdirCommandTestCase('test_rmdir_multiple_nested_dirs_and_files'))
     
+    suite.addTest(LogHistoryTestCase('test_log_history_ls_no_arg'))
+    suite.addTest(LogHistoryTestCase('test_log_history_ls_one_arg'))
+    suite.addTest(LogHistoryTestCase('test_log_history_multiple_commands'))
+
+    suite.addTest(HistoryCommandTestCase('test_history_ls_no_arg'))
+    suite.addTest(HistoryCommandTestCase('test_history_ls_one_arg'))
+    suite.addTest(HistoryCommandTestCase('test_history_multiple_commands'))
+
     return suite
 
 
