@@ -23,6 +23,7 @@ class Test_Client(unittest.TestCase):
         SFTPClient.Client.os.path.join = MagicMock()
         SFTPClient.Client.os.path.exists = MagicMock()
         SFTPClient.Client.os.rename = MagicMock()
+        SFTPClient.Client.os.remove = MagicMock()
         SFTPClient.Client.shutil.rmtree = MagicMock()
         self.myClass = SFTP("hostname", "username", "password", "public_key")
 
