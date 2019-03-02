@@ -45,6 +45,7 @@ class SFTP(object):
         
     # region Commands Section
     def ping(self):
+        """Returns 'pong' if the connection is alive, else 'nothing happened'"""
         return "pong" if self.connection.listdir() else "nothing happened"
 
     def history(self, args):
@@ -122,9 +123,9 @@ class SFTP(object):
             raise TypeError("Usage: mkdir <dirname | path/to/dirname>")
         else:
             if args[0].find('/') != -1:
-                self.connection.makedirs(args[0], mode = 775)
+                self.connection.makedirs(args[0], mode=775)
             else:
-                self.connection.mkdir(args[0], mode = 775)
+                self.connection.mkdir(args[0], mode=775)
 
     @log_history
     def get(self, args):
@@ -151,6 +152,13 @@ class SFTP(object):
 
     @log_history
     def put(self, args):
+        """
+        Send a file to the remote server.
+        Supports local paths for files, but only the file is put.
+        Filename and mtime are preserved.
+        Allows use if '-t' flag to set remote path which will be used for any following files. if any directory
+        does not exist, it is created.
+        """
         target = None
         iter_args = iter(args)
         for arg in iter_args:

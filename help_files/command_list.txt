@@ -7,13 +7,12 @@ help @ Show help file (You Are Here)
 help <command> @ Help with <command>
 history @ Show this session's command history
 ls @ List the contents of the current working directory on the remote server
-ls <path> @ List the contents of the requested directory on the remote server
+ls <remotepath> @ List the contents of the requested directory on the remote server
 mkdir <remotepath | path/to/remotepath> @ Creates remote directory
 put <localpath> [<localpath> ...] @ Put the given file(s) to the remote server
 put -t <remotepath> <localpath> [<localpath> ...] @ Put the given file(s) to the target directory on the remote server
-rm <file | path/to/file> @ Remove remote file
 rename <old> <new> @ rename a file or directory on remote server
-rmdir <remotepath> @ Delete a directory and its contents
+rm <remotefile | path/to/remotefile> @ Remove remote file
 quit @ Quits the program
 lsl @ List all contents of the current work directory
 close @ Terminate the connection between the server and client 
