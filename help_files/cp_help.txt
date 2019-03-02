@@ -1,0 +1,2 @@
+cp <src> <dst> @ Copy the remote <src> directory to <dst>
+Copy directories on the remote server using SFTP (get/put).

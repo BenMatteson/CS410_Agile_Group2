@@ -1,0 +1,2 @@
+cp_r <src> <dst> @ Copy the remote <src> directory to <dst>
+Copy directories on the remote server by executing shell commands.
