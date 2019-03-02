@@ -28,6 +28,7 @@ class SFTP(object):
         return True if self.connection.listdir() else False
 
     def log_history(func):
+        """A decorator function for logging command history each time a command is executed"""
         @wraps(func)
         def logged_func(self, args):
             if (len(args) > 0):
