@@ -2,6 +2,7 @@
 import argparse
 import logging
 import warnings
+import shlex
 
 import paramiko
 
@@ -80,7 +81,7 @@ class SFTPCLI(object):
     def execute_command(self, cmd):
         """Find and execute the command"""
         cli_commands = {'help', 'quit'}
-        parts = cmd.split(' ')
+        parts = shlex.split(cmd)
         if cli_commands.__contains__(parts[0]):
             return getattr(self, parts[0])(parts[1:])
         else:
