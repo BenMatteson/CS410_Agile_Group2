@@ -20,6 +20,9 @@ class Test_Client(unittest.TestCase):
         SFTPClient.Client.os.path.isdir = MagicMock()
         SFTPClient.Client.tempfile.gettempdir = MagicMock()
         SFTPClient.Client.os.mkdir = MagicMock()
+        SFTPClient.Client.os.path.join = MagicMock()
+        SFTPClient.Client.os.path.exists = MagicMock()
+        SFTPClient.Client.os.rename = MagicMock()
         SFTPClient.Client.shutil.rmtree = MagicMock()
         self.myClass = SFTP("hostname", "username", "password", "public_key")
 
@@ -151,21 +154,43 @@ class Testcp(Test_Client):
         self.myClass.connection.exists.side_effect = [False, False]
         self.assertRaises(IOError, self.myClass.cp, ['test.dir', 'test.dir-copy'])
 
-    def test_cp_dst_exists(self):
-        # verify that an IOError is raised when an existing destination directory is passed
-        self.myClass.connection.exists.side_effect = [True, True]
-        self.assertRaises(IOError, self.myClass.cp, ['test.dir', 'test.dir-copy'])
-
+    def test_cp_dst_file_exists(self):
+        # verify that an IOError is raised when an existing destination file is passed
+        self.myClass.connection.exists.side_effect = [True, True, True]
+        self.myClass.connection.isdir.return_value = False
+        self.myClass.connection.isfile.return_value = True
+        self.assertRaises(IOError, self.myClass.cp, ['test.dir', 'test.file'])
+    
     def test_cp_dir_valid(self):
         # setup
-        self.myClass.connection.exists.side_effect = [True, False]
+        self.myClass.connection.exists.side_effect = [True, False, False, False]
+        self.myClass.connection.isdir.return_value = True
+        self.myClass.connection.isfile.return_value = False
         SFTPClient.Client.tempfile.gettempdir.return_value = '/tmp'
+        self.myClass.connection.listdir.return_value = ['something']
+        SFTPClient.Client.os.path.join.side_effect = ['test.dir-copy/test.dir', '/tmp/test.dir', '/tmp/test.dir-copy', 'test.dir-copy', '/tmp/test.dir-copy', '/tmp/test.dir']
+        SFTPClient.Client.os.path.exists.side_effect = [True, False]
         # actual
         self.myClass.cp(['test.dir', 'test.dir-copy'])
         # verify
-        SFTPClient.Client.os.mkdir.assert_called_once_with('/tmp/test.dir')
-        self.myClass.connection.get_r.assert_called_once_with('test.dir', '/tmp/test.dir', preserve_mtime=True)
-        SFTPClient.Client.os.mkdir.assert_called_once_with('/tmp/test.dir')
+        self.myClass.connection.get_r.assert_called_once_with('test.dir', '/tmp', preserve_mtime=True)
+        self.myClass.connection.mkdir.assert_called_once_with('test.dir-copy')
+        self.myClass.connection.put_r.assert_called_once_with('/tmp/test.dir', 'test.dir-copy', preserve_mtime=True)
+        SFTPClient.Client.shutil.rmtree.assert_called_once_with('/tmp/test.dir')
+
+    def test_cp_dir_nested(self):
+        # setup
+        self.myClass.connection.exists.side_effect = [True, True, False, False]
+        self.myClass.connection.isdir.return_value = True
+        self.myClass.connection.isfile.return_value = False
+        SFTPClient.Client.tempfile.gettempdir.return_value = '/tmp'
+        self.myClass.connection.listdir.return_value = ['something']
+        SFTPClient.Client.os.path.join.side_effect = ['test.dir/test.dir-copy', '/tmp/test.dir', 'test.dir-copy', 'test.dir-copy', '/tmp/test.dir', '/tmp/test.dir']
+        SFTPClient.Client.os.path.exists.side_effect = [True, False]
+        # actual
+        self.myClass.cp(['test.dir', 'test.dir-copy'])
+        # verify
+        self.myClass.connection.get_r.assert_called_once_with('test.dir', '/tmp', preserve_mtime=True)
         self.myClass.connection.mkdir.assert_called_once_with('test.dir-copy')
         self.myClass.connection.put_r.assert_called_once_with('/tmp/test.dir', 'test.dir-copy', preserve_mtime=True)
         SFTPClient.Client.shutil.rmtree.assert_called_once_with('/tmp/test.dir')
@@ -185,11 +210,12 @@ class Testcp_r(Test_Client):
         # verify that an IOError is raised when a non-existent source directory is passed
         self.assertRaises(IOError, self.myClass.cp_r, ['test.dir', 'test.dir-copy'])
 
-    def test_cp_r_dst_exists(self):
+    def test_cp_r_dst_file_exists(self):
         # setup the exists() method to return True, and then True (valid src, invalid dst)
         self.myClass.connection.exists.side_effect = [True, True]
-        # verify that an IOError is raised when an existing destination directory is passed
-        self.assertRaises(IOError, self.myClass.cp_r, ['test.dir', 'test.dir-copy'])
+        self.myClass.connection.isfile.return_value = True
+        # verify that an IOError is raised when an existing destination file is passed
+        self.assertRaises(IOError, self.myClass.cp_r, ['test.dir', 'test.file'])
 
     def test_cp_r_dir_valid(self):
         # setup the exists() method to return True, and then False (valid src, valid dst)

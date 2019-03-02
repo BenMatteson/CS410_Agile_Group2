@@ -3,7 +3,7 @@ import paramiko
 import pysftp
 import ntpath
 import os
-from os.path import expanduser, isfile, exists, join, basename
+from os.path import expanduser, isfile, exists, join, basename, dirname
 from os import mkdir
 
 from paramiko import ssh_exception
@@ -187,39 +187,65 @@ class SFTP(object):
         """
         if len(args) is 2:
             if self.connection.exists(args[0]):
-                if not self.connection.exists(args[1]):
-                    try:
-                        # setup local vars
-                        tmp_d = tempfile.gettempdir()
-                        local_d = os.path.join(tmp_d, basename(args[0]))
-                        remote_d = args[1]
-                        logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
-                        
-                        # create a temporary directory to use for copying the contents of the remote dir
-                        # apparently put_r requires this?
-                        logging.debug('Creating directory at: ' + tmp_d)
-                        os.mkdir(local_d)
-                        
-                        # get the contents of the remote directory into the temporary folder
-                        logging.debug('Starting get...')
-                        self.connection.get_r(args[0], local_d, preserve_mtime=True)
-                        logging.debug('Copied ' + basename(args[0]) + ' to ' + local_d)
-                        
-                        # create a new directory on the remote server (put_r requires this?)
-                        logging.debug('Creating new directory at: ' + remote_d)
-                        self.connection.mkdir(args[1])
-                        
-                        # put the contents ofthe temporary
-                        logging.debug('Starting put...')
-                        self.connection.put_r(local_d, remote_d, preserve_mtime=True)
-                    except Exception as e:
-                        raise(e)
-                    finally:
-                        # cleanup the local temporary directory
-                        logging.debug('Starting cleanup...')
-                        shutil.rmtree(local_d)
+                if self.connection.exists(args[1]) and self.connection.isdir(args[1]):
+                    # the remote destination directory exists - copy the source directory into that one
+                    remote_d = os.path.join(args[1], basename(args[0]))
+                    nest_d = True
+                elif self.connection.exists(args[1]) and self.connection.isfile(args[1]):
+                    # the remote destination is a file - bail
+                    raise IOError('cp: ' + args[1] + ': file already exists')
                 else:
-                   raise IOError('cp: ' + args[1] + ': Destination directory already exists')
+                    # the remote destination doesn't exist - copy the source to that path
+                    remote_d = args[1]
+                    nest_d = None
+                try:
+                    # setup local vars
+                    tmp_d = tempfile.gettempdir()
+                    local_d = os.path.join(tmp_d, basename(args[0]))
+                    logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
+                    
+                    # get the contents of the remote directory into the temporary folder
+                    if len(self.connection.listdir(args[0])) > 0:
+                        # if the source folder is empty, paramiko (or pysftp?) will not actually do a get_r(),
+                        # but still reports success. This is an issue, and is being addressed by creating that folder manually
+                        logging.debug('Starting get...')
+                        self.connection.get_r(args[0], tmp_d, preserve_mtime=True)
+                        logging.debug('Copied ' + basename(args[0]) + ' to ' + tmp_d)
+                    else:
+                        logging.debug('Creating empty directory at: ' + os.path.join(tmp_d, args[0]) + '...')
+                        os.mkdir(os.path.join(tmp_d, args[0]))
+                    
+                    if nest_d:
+                        # if the target directory exists, copy the source into the destination
+                        moved_local_d = local_d
+                    else:
+                        # if the target directory doesn't exist, copy the source directory to that path
+                        moved_local_d = os.path.join(tmp_d, basename(remote_d))
+                        logging.debug('Moving ' + local_d + ' to: ' + moved_local_d + '...')
+                        os.rename(local_d, os.path.join(tmp_d, moved_local_d))
+                    
+                    # get the remote directory path so that it can be passed to put_r
+                    cwd = self.connection.pwd
+                    logging.debug('Remote working directory: ' + cwd)
+                    remote_path = os.path.join(cwd, remote_d)
+                    
+                    # create the remote directory (if it doesn't exist)
+                    if not self.connection.exists(remote_path):
+                        logging.debug('Creating remote directory: ' + remote_path + '...')
+                        self.connection.mkdir(remote_path)
+                    
+                    # put the contents ofthe temporary
+                    logging.debug('Starting put of src: ' + os.path.join(tmp_d, basename(remote_d)) + ' dst: ' + remote_path)
+                    self.connection.put_r(os.path.join(tmp_d, basename(remote_d)), remote_path, preserve_mtime=True)
+                except Exception as e:
+                    raise(e)
+                finally:
+                    # cleanup the local temporary directories
+                    logging.debug('Starting cleanup...')
+                    if os.path.exists(moved_local_d):
+                        shutil.rmtree(moved_local_d)
+                    if os.path.exists(local_d):
+                        shutil.rmtree(local_d)
             else:
                raise IOError('cp: ' + args[0] + ': No such file or directory')
         else:
@@ -235,10 +261,10 @@ class SFTP(object):
         """
         if len(args) is 2:
             if self.connection.exists(args[0]):
-                if not self.connection.exists(args[1]):
-                    self.connection.execute('cp -Rp ' + args[0] + ' ' + args[1])
-                else:
+                if self.connection.exists(args[1]) and self.connection.isfile(args[1]):
                    raise IOError('cp_r: ' + args[1] + ': File exists')
+                else:
+                    self.connection.execute('cp -Rp ' + args[0] + ' ' + args[1])
             else:
                raise IOError('cp_r: ' + args[0] + ': No such file or directory')
         else:
