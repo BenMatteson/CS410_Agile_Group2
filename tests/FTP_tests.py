@@ -630,6 +630,58 @@ class HistoryCommandTestCase(SFTPTestCase):
         command_history = self.sftp_client.history([])
         self.assertEqual(command_history, file_text.strip()) 
 
+class RenameCommandTestCase(SFTPTestCase):
+
+    def test_rename_zero_arg(self):
+        """Test rename command with zero arguments"""
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.rename([])
+
+    def test_rename_one_arg(self):
+        """Test rename command with one arguments"""
+        # rename command needs exactly two arguments
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.rename(["abc"])
+
+    def test_rename_two_arg_no_such_remote_file(self):
+        """Test rename command with two arguments, but file is not in remote server"""
+        # Successful run of test returns a IOError
+        # Assume remote server doesn't have a directory named "abc"
+        with self.assertRaises(IOError):
+            self.sftp_client.rename(["abc", "cba"])
+
+    def test_rename_two_arg(self):
+        """Test rename command with two arguments, but file is in remote server"""
+        # Successful run of test will rename directory in current remote directory
+        # Assuming you don't have a rename_test dir in remote server
+        file_name = 'rename_test'
+        rename_file = 'test_rename'
+        self.sftp_client.mkdir([file_name])
+        self.sftp_client.rename([file_name, rename_file])
+        dir_files = self.sftp_client.ls([])
+        self.assertTrue(rename_file in dir_files)
+        self.sftp_client.rmdir([rename_file])
+
+    def test_rename_nested(self):
+        """Test rename command with path 'nested/dir/dir_name"""
+        # Successful run of test will rename nested directories in current remote directory
+        full_path = 'rename/dir_name'
+        rename_full_path = 'rename/rename_dir'
+        split_path = rename_full_path.split("/")
+        self.sftp_client.mkdir([full_path])
+        self.sftp_client.rename([full_path, rename_full_path])
+        dir_files = self.sftp_client.ls([split_path[0]])
+        self.assertIn(split_path[1], dir_files)
+        self.sftp_client.rmdir(['rename'])
+
+    def test_rename_three_arg(self):
+        """Test rename command with three arguments"""
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.rename(['abc', 'bcc', 'ccc'])
+
 class CopyCommandTestCase(SFTPTestCase):
     """CopyCommandTestCase class provides a unittest class used for testing the SFTP cp command"""
     def setUp(self):
@@ -990,6 +1042,14 @@ def suite():
     suite.addTest(MkdirCommandTestCase('test_mkdir_zero_arg'))
     suite.addTest(MkdirCommandTestCase('test_mkdir_single_dir'))
     suite.addTest(MkdirCommandTestCase('test_mkdir_nested_dir'))
+
+    suite.addTest(RenameCommandTestCase('test_rename_zero_arg'))
+    suite.addTest(RenameCommandTestCase('test_rename_one_arg'))
+    suite.addTest(RenameCommandTestCase('test_rename_two_arg_no_such_remote_file'))
+    suite.addTest(RenameCommandTestCase('test_rename_two_arg'))
+    suite.addTest(RenameCommandTestCase('test_rename_nested'))
+    suite.addTest(RenameCommandTestCase('test_rename_three_arg'))
+
 
     suite.addTest(GetCommandTestCase('test_get_zero_arg'))
     suite.addTest(GetCommandTestCase('test_get_one_arg'))

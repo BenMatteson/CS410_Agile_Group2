@@ -1,0 +1,2 @@
+rename <old file name> <new file name> @ rename a file or directory on remote server
+rename a file or directory on remote server

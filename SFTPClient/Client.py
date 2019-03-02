@@ -173,6 +173,11 @@ class SFTP(object):
             else:
                 raise FileNotFoundError("couldn't find the requested file")
 
+    def rename(self, args):
+        if len(args) is 2:
+            self.connection.rename(args[0], args[1])
+        else:
+            raise TypeError('rename() takes exactly two arguments (' + str(len(args)) + ' given)')
     def cp(self, args):
         """Copy a remote directory from src to dst
         
