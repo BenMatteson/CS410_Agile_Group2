@@ -44,7 +44,7 @@ class SFTP(object):
         return logged_func
         
     # region Commands Section
-    def ping(self):
+    def ping(self, _args):
         """Returns 'pong' if the connection is alive, else 'nothing happened'"""
         return "pong" if self.connection.listdir() else "nothing happened"
 
@@ -279,12 +279,12 @@ class SFTP(object):
             raise TypeError('cp_r() takes exactly two arguments (' + str(len(args)) + ' given)')
     # endregion
 
-    def lsl(self):
+    def lsl(self, _args):
         '''It does list all files and directories in your local machine. It will start with local folder where the
          script exist'''
         return os.listdir(os.getcwd())
 
-    def close(self):
+    def close(self, _args):
         try:
             self.connection.close()
         except Exception:
