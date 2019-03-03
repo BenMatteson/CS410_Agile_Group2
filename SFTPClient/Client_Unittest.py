@@ -56,7 +56,7 @@ class Testping(Test_Client):
         # setup
         self.myClass.connection.listdir.return_value = True
         # actual
-        actual = self.myClass.ping()
+        actual = self.myClass.ping("")
         # verify
         self.myClass.connection.listdir.assert_called_once_with()
         self.assertEqual(actual, "pong")
@@ -65,7 +65,7 @@ class Testping(Test_Client):
         # setup
         self.myClass.connection.listdir.return_value = False
         # actual
-        actual = self.myClass.ping()
+        actual = self.myClass.ping("")
         # verify
         self.myClass.connection.listdir.assert_called_once_with()
         self.assertEqual(actual, "nothing happened")
@@ -148,7 +148,7 @@ class Testget(Test_Client):
         # actual
         self.myClass.get("1")
         # verify
-        self.myClass.connection.get("1", "downloads1")
+        self.myClass.connection.get("1", "downloads")
 
 
 @patch("SFTPClient.Client.os.getcwd", autospec=True)
@@ -189,6 +189,7 @@ class Testput(Test_Client):
         self.myClass.put(['-t', 'random_path/to_the', 'local/file.txt'])
         self.myClass.connection.put.assert_called_once_with('local/file.txt', 'random_path/to_the/file.txt',
                                                             preserve_mtime=True)
+
 
 class Testcp(Test_Client):
     def test_cp_one_arg(self):
@@ -245,6 +246,7 @@ class Testcp(Test_Client):
         self.myClass.connection.put_r.assert_called_once_with('/tmp/test.dir', 'test.dir-copy', preserve_mtime=True)
         SFTPClient.Client.shutil.rmtree.assert_called_once_with('/tmp/test.dir')
 
+
 class Testcp_r(Test_Client):
     def test_cp_r_one_arg(self):
         # verify that a TypeError is raised when only 1 argument is passed
@@ -274,6 +276,7 @@ class Testcp_r(Test_Client):
         self.myClass.cp_r(['test.dir', 'test.dir-copy'])
         # verify
         self.myClass.connection.execute.assert_called_once_with('cp -Rp test.dir test.dir-copy')
+
 
 @patch("builtins.exit", autospec=True)
 class TestcloseAndExit(Test_Client):
