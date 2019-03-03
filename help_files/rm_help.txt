@@ -1,3 +1,2 @@
-rm @ Remove remote file
 rm <file | path/to/file> @ Remove remote file
 Removes remote file
