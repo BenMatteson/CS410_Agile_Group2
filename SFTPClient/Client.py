@@ -26,7 +26,6 @@ class SFTP(object):
         """Check the connection (using the listdir() method) to confirm that it's active."""
         return True if self.connection.listdir() else False
 
-    # region Commands Section
     def ping(self):
         return "pong" if self.connection.listdir() else "nothing happened"
 
@@ -98,6 +97,23 @@ class SFTP(object):
                 self.connection.get(args[0], expanduser(args[1]))
         else:
             raise IOError(f"The remote path '{args[0]}' is not a file")
+
+    def getm(self, args):
+        if args < 1:
+            raise TypeError("get() takes 1 or more arguments (" + str(len(args)) + " given)")
+        else:
+            for f in args:
+                if self.connection.isfile(f):
+                    if len(args) is 1:
+                        head, tail = ntpath.split(args[0])
+                        remote_file = tail or ntpath.basename(head)
+                        localpath = join(DOWNLOADS_DIRECTORY, remote_file)
+                        self.connection.get(args[0], localpath)
+                    # elif len(args) is 2:
+                    #     self.connection.get(args[0], expanduser(args[1]))
+                else:
+                    raise IOError(f"The remote path '{args[0]}' is not a file")
+
 
     def put(self, args):
         target = None
