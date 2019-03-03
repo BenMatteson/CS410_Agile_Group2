@@ -288,7 +288,6 @@ class SFTP(object):
                raise IOError('cp_r: ' + args[0] + ': No such file or directory')
         else:
             raise TypeError('cp_r() takes exactly two arguments (' + str(len(args)) + ' given)')
-        return self.connection.pwd
     # endregion
 
     def lsl(self):
