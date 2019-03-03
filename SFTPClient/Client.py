@@ -111,7 +111,7 @@ class SFTP(object):
             if self.connection.isfile(args[0]):
                 self.connection.remove(args[0])
             else:
-                raise IOError(f"The remote path '{args[0]}' was not found")
+                raise IOError(f"The remote path '{args[0]}' is not a file")
 
     @log_history
     def mkdir(self, args):
@@ -212,6 +212,7 @@ class SFTP(object):
                 # setup local vars
                 tmp_d = tempfile.gettempdir()
                 local_d = os.path.join(tmp_d, os.path.basename(args[0]))
+                moved_local_d = os.path.join(tmp_d, os.path.basename(remote_d))
                 logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
                 try:
                     # get the contents of the remote directory into the temporary folder
@@ -230,7 +231,6 @@ class SFTP(object):
                         moved_local_d = local_d
                     else:
                         # if the target directory doesn't exist, copy the source directory to that path
-                        moved_local_d = os.path.join(tmp_d, os.path.basename(remote_d))
                         logging.debug('Moving ' + local_d + ' to: ' + moved_local_d + '...')
                         os.rename(local_d, os.path.join(tmp_d, moved_local_d))
 
@@ -257,7 +257,7 @@ class SFTP(object):
             else:
                raise IOError('cp: ' + args[0] + ': No such file or directory')
         else:
-            raise TypeError('cp() takes exactly two arguments (' + str(len(args)) + ' given)')
+            raise TypeError('Usage: cp <remote_source> <remote_destination>')
 
     def cp_r(self, args):
         """Copy a remote directory from src to dst via remote command execution
