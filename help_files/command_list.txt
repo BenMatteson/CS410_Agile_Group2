@@ -1,4 +1,5 @@
 chmod <remotepath> <mode> @ Set the permissions of <remotepath> to <mode>
+close @ Terminate the connection between the server and client
 cp <src> <dst> @ Copy the remote <src> directory to <dst> using SFTP
 cp_r <src> <dst> @ Copy the remote <src> directory to <dst> using SSH/bash
 get <remotepath> @ Download a remote file to the downloads directory
@@ -7,15 +8,12 @@ help @ Show help file (You Are Here)
 help <command> @ Help with <command>
 history @ Show this session's command history
 ls @ List the contents of the current working directory on the remote server
-ls <path> @ List the contents of the requested directory on the remote server
-mkdir @ Create remote directory
-mkdir <path | path/to/dir> @ Creates remote directory
-put <file_name> [<file_name> ...] @ Put the given file(s) to the remote server
-put -t <target_dir> <file_name [<file_name> ...] @ Put the given file(s) to the target directory on the remote server
-rm @ Remove remote file
-rm <file | path/to/file> @ Remove remote file
+ls <remotepath> @ List the contents of the requested directory on the remote server
+lsl @ List all contents of the current work directory
+mkdir <remotepath | path/to/remotepath> @ Creates remote directory
+put <localpath> [<localpath> ...] @ Put the given file(s) to the remote server
+put -t <remotepath> <localpath> [<localpath> ...] @ Put the given file(s) to the target directory on the remote server
 rename <old> <new> @ rename a file or directory on remote server
+rm <remotefile | path/to/remotefile> @ Remove remote file
 rmdir <remotepath> @ Delete a directory and its contents
 quit @ Quits the program
-lsl @ List all contents of the current work directory
-close @ Terminate the connection between the server and client 
