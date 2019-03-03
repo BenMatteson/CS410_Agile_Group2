@@ -3,12 +3,15 @@ import paramiko
 import pysftp
 import ntpath
 import os
-from os.path import expanduser, isfile, exists, join
-from os import mkdir
 
 from paramiko import ssh_exception
+from functools import wraps
+import tempfile
+import shutil
 
 DOWNLOADS_DIRECTORY = "downloads"
+HISTORY_FILE = "command_history.txt"
+
 
 class SFTP(object):
     def __init__(self, hostname, username, password=None, private_key_password=None):
@@ -16,19 +19,46 @@ class SFTP(object):
         self.username = username
         self.password = password
         self.private_key_password = private_key_password
-        if not exists(DOWNLOADS_DIRECTORY):
-            mkdir(DOWNLOADS_DIRECTORY)
-        self.local_directory = expanduser('~')
+        self.local_directory = os.path.expanduser('~')
         self.connection = self.initiate_connection()
+        if not os.path.exists(DOWNLOADS_DIRECTORY):
+            os.mkdir(DOWNLOADS_DIRECTORY)
+        if os.path.exists(HISTORY_FILE):
+            os.remove(HISTORY_FILE)
 
     def is_connected(self):
         """Check the connection (using the listdir() method) to confirm that it's active."""
         return True if self.connection.listdir() else False
 
+    def log_history(func):
+        """A decorator function for logging command history each time a command is executed"""
+        @wraps(func)
+        def logged_func(self, args):
+            if (len(args) > 0):
+                with open(HISTORY_FILE, "a") as f:
+                    f.write(func.__name__ + " " + " ".join(str(arg) for arg in args) + "\n")
+            else:
+                with open(HISTORY_FILE, "a") as f:
+                    f.write(func.__name__ + "\n")
+            return func(self, args)
+        return logged_func
+
     # region Commands Section
     def ping(self):
         return "pong" if self.connection.listdir() else "nothing happened"
 
+    def history(self, args):
+        """Return the current session's command history"""
+        if len(args) != 0:
+            raise TypeError('history takes exactly zero arguments (' + str(len(args)) + ' given)')
+
+        command_history = ""
+        if os.path.isfile(HISTORY_FILE):
+            with open(HISTORY_FILE, "r") as f:
+                command_history = f.read().strip()
+        return command_history
+
+    @log_history
     def ls(self, args):
         """List directory contents on the remote server"""
         results = None
@@ -40,6 +70,7 @@ class SFTP(object):
             raise TypeError('ls() takes exactly zero or one arguments (' + str(len(args)) + ' given)')
         return results
 
+    @log_history
     def chmod(self, args):
         """Change or modify permissions of directories and files on the remote server
 
@@ -51,6 +82,8 @@ class SFTP(object):
         else:
             raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
 
+
+    @log_history
     def rmdir(self, args):
         """
         Recursively delete a directory and all it's files and subdirectories
@@ -67,6 +100,9 @@ class SFTP(object):
         else:
             raise TypeError(f"Error: '{args[0]}' is not a directory")
 
+
+
+    @log_history
     def rm(self, args):
         """
             Remove file from remote path given by argument. Arg may include path ('/').
@@ -79,6 +115,7 @@ class SFTP(object):
             else:
                 raise TypeError("Usage: rm [filename | path/to/filename]")
 
+    @log_history
     def mkdir(self, args):
         """
             Creates directory on remote path passed as an argument. Directories
@@ -92,6 +129,7 @@ class SFTP(object):
             else:
                 self.connection.mkdir(args[0], mode = 775)
 
+    @log_history
     def get(self, args):
         """
         Downloads a remote file to the local machine. Given a single remotepath
@@ -107,24 +145,25 @@ class SFTP(object):
             if len(args) is 1:
                 head, tail = ntpath.split(args[0])
                 remote_file = tail or ntpath.basename(head)
-                localpath = join(DOWNLOADS_DIRECTORY, remote_file)
+                localpath = os.path.join(DOWNLOADS_DIRECTORY, remote_file)
                 self.connection.get(args[0], localpath)
             elif len(args) is 2:
-                self.connection.get(args[0], expanduser(args[1]))
+                self.connection.get(args[0], os.path.expanduser(args[1]))
         else:
             raise IOError(f"The remote path '{args[0]}' is not a file")
 
+    @log_history
     def put(self, args):
         target = None
         iter_args = iter(args)
         for arg in iter_args:
-            arg = expanduser(arg)
+            arg = os.path.expanduser(arg)
             if arg == '-t':
                 target = next(iter_args)
             elif os.path.isfile(arg):
                 if target is not None:
                     try:
-                        self.mkdir([target])
+                        self.connection.mkdir(target)
                     except IOError:
                         pass  # already exists
                     self.connection.put(arg, target + '/' + os.path.basename(arg), preserve_mtime=True)
@@ -146,14 +185,123 @@ class SFTP(object):
             else:
                 raise TypeError("Error: path is not a directory")
 
-    def pwd(self, args):
+    def pwd(self):
         """ Prints the remote working directory """
-        if len(args) > 0:
-            raise TypeError("Usage: pwd")
+        return self.connection.pwd
+
+    def rename(self, args):
+        if len(args) is 2:
+            self.connection.rename(args[0], args[1])
         else:
-            path = self.connection.pwd
-            print(path)
+            raise TypeError('rename() takes exactly two arguments (' + str(len(args)) + ' given)')
+    def cp(self, args):
+        """Copy a remote directory from src to dst
+
+            This version of the cp command performs an extremely inefficient copy, by
+            first doing a get of the remote directory into a local temporary directory,
+            and then doing a put of that directory back onto the remote server.
+
+            This is a pure (S)FTP solution, which means that it does not require the ability to perform
+            remote shell execution).
+        """
+        if len(args) is 2:
+            if self.connection.exists(args[0]):
+                if self.connection.exists(args[1]) and self.connection.isdir(args[1]):
+                    # the remote destination directory exists - copy the source directory into that one
+                    remote_d = os.path.join(args[1], os.path.basename(args[0]))
+                    nest_d = True
+                elif self.connection.exists(args[1]) and self.connection.isfile(args[1]):
+                    # the remote destination is a file - bail
+                    raise IOError('cp: ' + args[1] + ': file already exists')
+                else:
+                    # the remote destination doesn't exist - copy the source to that path
+                    remote_d = args[1]
+                    nest_d = None
+                try:
+                    # setup local vars
+                    tmp_d = tempfile.gettempdir()
+                    local_d = os.path.join(tmp_d, os.path.basename(args[0]))
+                    logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
+
+                    # get the contents of the remote directory into the temporary folder
+                    if len(self.connection.listdir(args[0])) > 0:
+                        # if the source folder is empty, paramiko (or pysftp?) will not actually do a get_r(),
+                        # but still reports success. This is an issue, and is being addressed by creating that folder manually
+                        logging.debug('Starting get...')
+                        self.connection.get_r(args[0], tmp_d, preserve_mtime=True)
+                        logging.debug('Copied ' + os.path.basename(args[0]) + ' to ' + tmp_d)
+                    else:
+                        logging.debug('Creating empty directory at: ' + os.path.join(tmp_d, args[0]) + '...')
+                        os.mkdir(os.path.join(tmp_d, args[0]))
+
+                    if nest_d:
+                        # if the target directory exists, copy the source into the destination
+                        moved_local_d = local_d
+                    else:
+                        # if the target directory doesn't exist, copy the source directory to that path
+                        moved_local_d = os.path.join(tmp_d, os.path.basename(remote_d))
+                        logging.debug('Moving ' + local_d + ' to: ' + moved_local_d + '...')
+                        os.rename(local_d, os.path.join(tmp_d, moved_local_d))
+
+                    # get the remote directory path so that it can be passed to put_r
+                    cwd = self.connection.pwd
+                    logging.debug('Remote working directory: ' + cwd)
+                    remote_path = os.path.join(cwd, remote_d)
+
+                    # create the remote directory (if it doesn't exist)
+                    if not self.connection.exists(remote_path):
+                        logging.debug('Creating remote directory: ' + remote_path + '...')
+                        self.connection.mkdir(remote_path)
+
+                    # put the contents ofthe temporary
+                    logging.debug('Starting put of src: ' + os.path.join(tmp_d, os.path.basename(remote_d)) + ' dst: ' + remote_path)
+                    self.connection.put_r(os.path.join(tmp_d, os.path.basename(remote_d)), remote_path, preserve_mtime=True)
+                except Exception as e:
+                    raise(e)
+                finally:
+                    # cleanup the local temporary directories
+                    logging.debug('Starting cleanup...')
+                    if os.path.exists(moved_local_d):
+                        shutil.rmtree(moved_local_d)
+                    if os.path.exists(local_d):
+                        shutil.rmtree(local_d)
+            else:
+               raise IOError('cp: ' + args[0] + ': No such file or directory')
+        else:
+            raise TypeError('cp() takes exactly two arguments (' + str(len(args)) + ' given)')
+
+    def cp_r(self, args):
+        """Copy a remote directory from src to dst via remote command execution
+
+            This is the most efficient way to copy remote directories, but may
+            require the ability to perform remote shell commands (i.e., it may
+            not be compatible with chrooted SFTP sessions or (S)FTP servers running
+            on a non-POSIX OS.
+        """
+        if len(args) is 2:
+            if self.connection.exists(args[0]):
+                if self.connection.exists(args[1]) and self.connection.isfile(args[1]):
+                   raise IOError('cp_r: ' + args[1] + ': File exists')
+                else:
+                    self.connection.execute('cp -Rp ' + args[0] + ' ' + args[1])
+            else:
+               raise IOError('cp_r: ' + args[0] + ': No such file or directory')
+        else:
+            raise TypeError('cp_r() takes exactly two arguments (' + str(len(args)) + ' given)')
+        return self.connection.pwd
     # endregion
+
+    def lsl(self):
+        '''It does list all files and directories in your local machine. It will start with local folder where the
+         script exist'''
+        return os.listdir(os.getcwd())
+
+    def close(self):
+        try:
+            self.connection.close()
+        except Exception:
+            pass
+        exit()
 
     def __del__(self):
         try:
@@ -179,11 +327,11 @@ class SFTP(object):
                 'cnopts': cnopts}
 
         # Determine what type of authentication to use based on parameters provided
-        ssh_key = expanduser('~') + '/.ssh/id_rsa'
+        ssh_key = os.path.expanduser('~') + '/.ssh/id_rsa'
         if self.password is not None:
             logging.debug('Using plaintext authentication')
             args['password'] = self.password
-        elif isfile(ssh_key):
+        elif os.path.isfile(ssh_key):
             logging.debug('Got SSH key: ' + ssh_key)
             # the file at ~/.ssh/id_rsa exists - use it as the (default) private key
             args['private_key'] = ssh_key
