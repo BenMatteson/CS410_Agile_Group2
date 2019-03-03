@@ -289,7 +289,10 @@ class SFTP(object):
 
     def pwdl(self, _args):
         """ Returns the present (local) working directory """
-        return print(os.getcwd())
+        if(_args):
+            raise TypeError("Usage: pwd")
+        else:
+            return print(os.getcwd())
 
     def __del__(self):
         try:

@@ -11,7 +11,7 @@ import re
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from SFTPClient.Client import SFTP
 from SFTPClient.Client import DOWNLOADS_DIRECTORY, HISTORY_FILE
-from FTP_auth import PSU_ID, PSU_CECS_PASSWORD#, PRIVATE_KEY_PASSWORD
+from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
 
 
 class SFTPTestCase(unittest.TestCase):
@@ -30,7 +30,7 @@ class SFTPTestCase(unittest.TestCase):
         cls.hostname = 'linuxlab.cs.pdx.edu'
         cls.username = PSU_ID
         cls.password = PSU_CECS_PASSWORD
-        #cls.private_key_password = PRIVATE_KEY_PASSWORD
+        cls.private_key_password = PRIVATE_KEY_PASSWORD
         # file name used for testing commands
         cls.test_file_name = 'SFTPTestCase_file.txt'
         # directory name/path used for testing commands
@@ -41,7 +41,7 @@ class SFTPTestCase(unittest.TestCase):
             cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}
         else:
             # by default, perform public key authentication
-            cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}#'private_key_password':cls.private_key_password}
+            cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'private_key_password':cls.private_key_password}
 
         # initialize sftp_client
         cls.sftp_client = SFTP(**cls.sftp_args)
@@ -1010,6 +1010,19 @@ class PutCommandTestCase(SFTPTestCase):
         self.sftp_client.rmdir([test_folder])
         os.remove(test_file)
 
+class PwdlCommandTestCase(SFTPTestCase):
+    """ Provides unittests for pwd local command """
+
+    def test_pwdl_no_args(self):
+        """ Tests pwdl command without args """
+        path = self.sftp_client.pwdl
+        self.assertIsNotNone(path)
+
+    def test_pwdl_with_args(self):
+        """ Tests pwdl command with args """
+        with self.assertRaises(TypeError):
+            self.sftp_client.pwdl("Fried-Chicken-Sundae")
+
 
 def suite():
     suite = unittest.TestSuite()
@@ -1093,6 +1106,9 @@ def suite():
     suite.addTest(HistoryCommandTestCase('test_history_ls_no_arg'))
     suite.addTest(HistoryCommandTestCase('test_history_ls_one_arg'))
     suite.addTest(HistoryCommandTestCase('test_history_multiple_commands'))
+
+    suite.addTest(PwdlCommandTestCase('test_pwdl_no_args'))
+    suite.addTest(PwdlCommandTestCase('test_pwdl_with_args'))
 
     return suite
 
