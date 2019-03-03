@@ -121,12 +121,12 @@ class SFTP(object):
             else:
                 raise FileNotFoundError("couldn't find the requested file")
 
-    def lsl(self, args):
+    def lsl(self, _args):
         '''It does list all files and directories in your local machine. It will start with local folder where the
          script exist'''
         return os.listdir(os.getcwd())
 
-    def close(self, args):
+    def close(self, _args):
         try:
             self.connection.close()
         except Exception:

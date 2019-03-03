@@ -90,6 +90,54 @@ class Testchmod(Test_Client):
         self.assertRaises(TypeError, self.myClass.chmod, ['car', 'boat', 'train'])
 
 
+class Testrm(Test_Client):
+    def test_rm(self):
+        # verify
+        self.assertRaises(TypeError, self.myClass.rm, "Usage: rm [filename | path/to/filename]")
+
+    def test_rm1(self):
+        # setup
+        self.myClass.connection.isdir.return_value = True
+        # actual
+        self.myClass.rm("f")
+        # verify
+        self.myClass.connection.remove.assert_called_once_with("f")
+
+    def test_rm2(self):
+        # setup
+        self.myClass.connection.isdir.return_value = False
+        # actual
+        self.myClass.rm("f")
+        # verify
+        self.assertRaises(TypeError, self.myClass.rm, "Usage: rm [filename | path/to/filename]")
+
+
+class Testmkdir(Test_Client):
+    def test_mkdir(self):
+        # verify
+        self.assertRaises(TypeError, self.myClass.mkdir, "Usage: mkdir [dirname | path/to/dirname]")
+
+    def test_mkdir1(self):
+        # actual
+        self.myClass.mkdir("/")
+        # verify
+        self.myClass.connection.makedirs.assert_called_once_with("/", mode=775)
+
+
+class Testget(Test_Client):
+    def test_get(self):
+        # verify
+        self.assertRaises(TypeError, self.myClass.get, "get() takes 1 or 2 arguments ("" given)")
+
+    def test_get1(self):
+        # setup
+        self.myClass.connection.isfile.return_value = True
+        # actual
+        self.myClass.get("1")
+        # verify
+        self.myClass.connection.get("1", "downloads1")
+
+
 @patch("SFTPClient.Client.os.getcwd", autospec=True)
 @patch("SFTPClient.Client.os.listdir", autospec=True)
 class Testlsl(Test_Client):
@@ -126,12 +174,13 @@ class Testput(Test_Client):
         SFTPClient.Client.os.path.isfile.return_value = True
         SFTPClient.Client.os.path.isdir.return_value = False
         self.myClass.put(['-t', 'random_path/to_the', 'local/file.txt'])
-        self.myClass.connection.put.assert_called_once_with('local/file.txt', 'random_path/to_the/file.txt', preserve_mtime=True)
+        self.myClass.connection.put.assert_called_once_with('local/file.txt', 'random_path/to_the/file.txt',
+                                                            preserve_mtime=True)
 
 
 @patch("builtins.exit", autospec=True)
 class TestcloseAndExit(Test_Client):
-    def test_closeAndExit(self, mockexit):
+    def test_close(self, mockexit):
         # actual
         self.myClass.close("args")
         #verify
