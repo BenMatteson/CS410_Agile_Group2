@@ -11,7 +11,7 @@ import re
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from SFTPClient.Client import SFTP
 from SFTPClient.Client import DOWNLOADS_DIRECTORY, HISTORY_FILE
-from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
+from FTP_auth import PSU_ID, PSU_CECS_PASSWORD#, PRIVATE_KEY_PASSWORD
 
 
 class SFTPTestCase(unittest.TestCase):
@@ -30,7 +30,7 @@ class SFTPTestCase(unittest.TestCase):
         cls.hostname = 'linuxlab.cs.pdx.edu'
         cls.username = PSU_ID
         cls.password = PSU_CECS_PASSWORD
-        cls.private_key_password = PRIVATE_KEY_PASSWORD
+        #cls.private_key_password = PRIVATE_KEY_PASSWORD
         # file name used for testing commands
         cls.test_file_name = 'SFTPTestCase_file.txt'
         # directory name/path used for testing commands
@@ -41,7 +41,7 @@ class SFTPTestCase(unittest.TestCase):
             cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}
         else:
             # by default, perform public key authentication
-            cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'private_key_password':cls.private_key_password}
+            cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}#'private_key_password':cls.private_key_password}
 
         # initialize sftp_client
         cls.sftp_client = SFTP(**cls.sftp_args)
@@ -91,7 +91,7 @@ class ListCommandTestCase(SFTPTestCase):
     def setUp(self):
         self.sftp_client.connection.execute('touch ' + self.test_file_name)
         self.sftp_client.connection.execute('mkdir ' + self.test_dir_name)
-    
+
     def tearDown(self):
         self.sftp_client.connection.execute('rm ' + self.test_file_name)
         self.sftp_client.connection.execute('rmdir ' + self.test_dir_name)
@@ -153,7 +153,7 @@ class ChmodCommandTestCase(SFTPTestCase):
     """ChmodCommandTestCase class provides a unittest class used for testing the SFTP chmod command"""
     def setUp(self):
         self.sftp_client.connection.execute('mkdir ' + self.test_dir_name)
-    
+
     def tearDown(self):
         self.sftp_client.connection.execute('rmdir ' + self.test_dir_name)
 
@@ -396,7 +396,7 @@ class RmdirCommandTestCase(SFTPTestCase):
         dir1 = "SFTP_test_rmdir_two_nested_dirs_dir1"
         self.sftp_client.connection.mkdir(dir1)
         self.assertTrue(self.sftp_client.connection.isdir(dir1))
-        
+
         # Create second directory
         dir2 = "SFTP_test_rmdir_two_nested_dirs_dir2"
         self.sftp_client.connection.mkdir(f"{dir1}/{dir2}")
@@ -415,7 +415,7 @@ class RmdirCommandTestCase(SFTPTestCase):
         dir1 = "SFTP_test_rmdir_multiple_nested_dirs"
         self.sftp_client.connection.mkdir(dir1)
         self.assertTrue(self.sftp_client.connection.isdir(dir1))
-        
+
         # Create directories inside the root
         for i in range(1,5):
             self.sftp_client.connection.makedirs(f"{dir1}/a/b/c/dir{i}")
@@ -434,7 +434,7 @@ class RmdirCommandTestCase(SFTPTestCase):
         dir1 = "SFTP_test_rmdir_multiple_nested_dirs_and_files"
         self.sftp_client.connection.mkdir(dir1)
         self.assertTrue(self.sftp_client.connection.isdir(dir1))
-        
+
         # Create directories inside the root
         for i in range(1,5):
             self.sftp_client.connection.makedirs(f"{dir1}/a/b/c/dir{i}")
@@ -529,7 +529,7 @@ class LogHistoryTestCase(SFTPTestCase):
     def setUp(self):
         if os.path.exists(HISTORY_FILE):
             os.remove(HISTORY_FILE)
-        
+
     def tearDown(self):
         if os.path.exists(HISTORY_FILE):
             os.remove(HISTORY_FILE)
@@ -540,15 +540,15 @@ class LogHistoryTestCase(SFTPTestCase):
         file_text = ""
         with open(HISTORY_FILE, "r") as f:
             file_text = f.read()
-        self.assertEqual(file_text, "ls\n") 
-        
+        self.assertEqual(file_text, "ls\n")
+
     def test_log_history_ls_one_arg(self):
         """Test log_history with one arguments to ls"""
         self.sftp_client.ls(['Downloads'])
         file_text = ""
         with open(HISTORY_FILE, "r") as f:
             file_text = f.read()
-        self.assertEqual(file_text, "ls Downloads\n") 
+        self.assertEqual(file_text, "ls Downloads\n")
 
     def test_log_history_multiple_commands(self):
         """Test log_history with every SFTP command"""
@@ -584,7 +584,7 @@ class LogHistoryTestCase(SFTPTestCase):
                    f"rm {file_name}\n")
         with open(HISTORY_FILE, "r") as f:
             file_text = f.read()
-        self.assertEqual(file_text, expected) 
+        self.assertEqual(file_text, expected)
 
 
 class HistoryCommandTestCase(SFTPTestCase):
@@ -593,7 +593,7 @@ class HistoryCommandTestCase(SFTPTestCase):
     def setUp(self):
         if os.path.exists(HISTORY_FILE):
             os.remove(HISTORY_FILE)
-        
+
     def tearDown(self):
         if os.path.exists(HISTORY_FILE):
             os.remove(HISTORY_FILE)
@@ -602,13 +602,13 @@ class HistoryCommandTestCase(SFTPTestCase):
         """Test history command with zero arguments to ls"""
         self.sftp_client.ls([])
         command_history = self.sftp_client.history([])
-        self.assertEqual(command_history, "ls") 
-        
+        self.assertEqual(command_history, "ls")
+
     def test_history_ls_one_arg(self):
         """Test history command with one argument to ls"""
         self.sftp_client.ls(["Downloads"])
         command_history = self.sftp_client.history([])
-        self.assertEqual(command_history, "ls Downloads") 
+        self.assertEqual(command_history, "ls Downloads")
 
     def test_history_multiple_commands(self):
         """Test history command with every SFTP command"""
@@ -628,7 +628,7 @@ class HistoryCommandTestCase(SFTPTestCase):
         with open(HISTORY_FILE, "w") as f:
             f.write(file_text)
         command_history = self.sftp_client.history([])
-        self.assertEqual(command_history, file_text.strip()) 
+        self.assertEqual(command_history, file_text.strip())
 
 class RenameCommandTestCase(SFTPTestCase):
 
@@ -691,7 +691,7 @@ class CopyCommandTestCase(SFTPTestCase):
         self.sftp_client.connection.execute('mkdir ' + self.test_dir_name + '/testdir')
         self.sftp_client.connection.execute('touch ' + self.test_dir_name + '/testdir/testfile2')
         self.sftp_client.connection.execute('mkdir empty')
-    
+
     def tearDown(self):
         self.sftp_client.connection.execute('rm -r ' + self.test_dir_name + ' ' + self.test_dir_name + '-copy empty empty1')
         self.sftp_client.connection.execute('rm ' + self.test_file_name)
@@ -701,7 +701,7 @@ class CopyCommandTestCase(SFTPTestCase):
         # assertExists() method can be used to confirm whether a copy of the test dir exists
         item_copy = re.sub(self.test_dir_name, self.test_dir_name + '-copy', item)
         return super(CopyCommandTestCase, self).assertExists(item_copy, msg)
-  
+
     def assertNestedExists(self, item, msg=None):
         # prepend the string 'empty/' to the front of self.test_dir_name and `item`,
         # so that the super class' assertExists() method can be used to confirm whether
@@ -711,7 +711,7 @@ class CopyCommandTestCase(SFTPTestCase):
             return super(CopyCommandTestCase, self).assertExists(item_copy, msg)
         except AssertionError as e:
             raise e
-    
+
     def test_copy_zero_arg(self):
         """Test cp command with zero arguments"""
         # Test the cp command with zero arguments to:
@@ -725,7 +725,7 @@ class CopyCommandTestCase(SFTPTestCase):
         #  confirm that the test will fail with a TypeError exception
         with self.assertRaises(TypeError):
             self.sftp_client.cp(['0xdeadbeef'])
-    
+
     def test_copy_three_arg(self):
         """Test cp command with three arguments"""
         # Test the cp command with three arguments to:
@@ -772,19 +772,19 @@ class CopyCommandTestCase(SFTPTestCase):
         #  confirm that the dst directory does not exist;
         #  confirm that the copy operation will complete without exception;
         #  confirm that the contents of dst match src
-        
+
         # confirm that src_dir exists, and is a directory
         self.assertTrue(self.sftp_client.connection.exists(self.test_dir_name))
         self.assertTrue(self.sftp_client.connection.isdir(self.test_dir_name))
-        
+
         # confirm that the destination directory doesn't exist
         dst_d = self.test_dir_name + '-copy'
         self.assertFalse(self.sftp_client.connection.exists(dst_d))
-        
+
         # perform the copy
         result = self.sftp_client.cp([self.test_dir_name, dst_d])
         self.assertIsNone(result)
-        
+
         # confirm that the copy now exists
         self.assertTrue(self.sftp_client.connection.exists(dst_d))
 
@@ -804,26 +804,26 @@ class CopyCommandTestCase(SFTPTestCase):
         #  confirm that the dst directory exist;
         #  confirm that the copy operation will complete without exception;
         #  confirm that the contents of dst/src match src
-        
+
         # confirm that src_dir exists, and is a directory
         self.assertTrue(self.sftp_client.connection.exists(self.test_dir_name))
         self.assertTrue(self.sftp_client.connection.isdir(self.test_dir_name))
-        
+
         # confirm that the destination directory exists, and is a directory
         dst_d = 'empty'
         self.assertTrue(self.sftp_client.connection.exists(dst_d))
         self.assertTrue(self.sftp_client.connection.isdir(dst_d))
-        
+
         # perform the copy
         result = self.sftp_client.cp([self.test_dir_name, dst_d])
         self.assertIsNone(result)
-        
+
         # confirm that the copy now exists
         self.assertTrue(self.sftp_client.connection.exists(dst_d + '/' + self.test_dir_name))
-    
+
         # confirm that each directory exists when walking the (nested) copied directory tree
         self.sftp_client.connection.walktree(self.test_dir_name, self.assertNestedExists, self.assertNestedExists, self.assertNestedExists)
-        
+
         # confirm that after removing something from the copied directory tree,
         # that the assertNestedExists method actual fails
         self.sftp_client.connection.execute('rm -r empty/"' + self.test_dir_name + '/testdir"')
@@ -840,18 +840,18 @@ class CopyRCommandTestCase(SFTPTestCase):
         self.sftp_client.connection.execute('mkdir ' + self.test_dir_name + '/testdir')
         self.sftp_client.connection.execute('touch ' + self.test_dir_name + '/testdir/testfile2')
         self.sftp_client.connection.execute('mkdir empty')
-    
+
     def tearDown(self):
         self.sftp_client.connection.execute('rm -r ' + self.test_dir_name + ' ' + self.test_dir_name + '-copy')
         self.sftp_client.connection.execute('rm ' + self.test_file_name)
         self.sftp_client.connection.execute('rm -r empty empty1')
-    
+
     def assertCopyExists(self, item, msg=None):
         # append the string '-copy' to the end of `item`, so that the super class'
         # assertExists() method can be used to confirm whether a copy of the test dir exists
         item_copy = re.sub(self.test_dir_name, self.test_dir_name + '-copy', item)
         return super(CopyRCommandTestCase, self).assertExists(item_copy, msg)
-  
+
     def assertNestedExists(self, item, msg=None):
         # prepend the string 'empty/' to the front of self.test_dir_name and `item`,
         # so that the super class' assertExists() method can be used to confirm whether
@@ -875,7 +875,7 @@ class CopyRCommandTestCase(SFTPTestCase):
         #  confirm that the test will fail with a TypeError exception
         with self.assertRaises(TypeError):
             self.sftp_client.cp_r(['0xdeadbeef'])
-    
+
     def test_copy_r_three_arg(self):
         """Test cp_r command with three arguments"""
         # Test the cp_r command with three arguments to:
@@ -922,19 +922,19 @@ class CopyRCommandTestCase(SFTPTestCase):
         #  confirm that the dst directory does not exist;
         #  confirm that the copy operation will complete without exception;
         #  confirm that the contents of dst match src
-        
+
         # confirm that src_dir exists, and is a directory
         self.assertTrue(self.sftp_client.connection.exists(self.test_dir_name))
         self.assertTrue(self.sftp_client.connection.isdir(self.test_dir_name))
-        
+
         # confirm that the destination directory doesn't exist
         dst_d = self.test_dir_name + '-copy'
         self.assertFalse(self.sftp_client.connection.exists(dst_d))
-        
+
         # perform the copy
         result = self.sftp_client.cp_r([self.test_dir_name, dst_d])
         self.assertIsNone(result)
-        
+
         # confirm that the copy now exists
         self.assertTrue(self.sftp_client.connection.exists(dst_d))
 
@@ -954,26 +954,26 @@ class CopyRCommandTestCase(SFTPTestCase):
         #  confirm that the dst directory exist;
         #  confirm that the copy operation will complete without exception;
         #  confirm that the contents of dst/src match src
-        
+
         # confirm that src_dir exists, and is a directory
         self.assertTrue(self.sftp_client.connection.exists(self.test_dir_name))
         self.assertTrue(self.sftp_client.connection.isdir(self.test_dir_name))
-        
+
         # confirm that the destination directory exists, and is a directory
         dst_d = 'empty'
         self.assertTrue(self.sftp_client.connection.exists(dst_d))
         self.assertTrue(self.sftp_client.connection.isdir(dst_d))
-        
+
         # perform the copy
         result = self.sftp_client.cp_r([self.test_dir_name, dst_d])
         self.assertIsNone(result)
-        
+
         # confirm that the copy now exists
         self.assertTrue(self.sftp_client.connection.exists(dst_d + '/' + self.test_dir_name))
-    
+
         # confirm that each directory exists when walking the (nested) copied directory tree
         self.sftp_client.connection.walktree(self.test_dir_name, self.assertNestedExists, self.assertNestedExists, self.assertNestedExists)
-        
+
         # confirm that after removing something from the copied directory tree,
         # that the assertNestedExists method actual fails
         self.sftp_client.connection.execute('rm -r empty/"' + self.test_dir_name + '/testdir"')
@@ -1085,7 +1085,7 @@ def suite():
     suite.addTest(RmdirCommandTestCase('test_rmdir_two_nested_dirs'))
     suite.addTest(RmdirCommandTestCase('test_rmdir_multiple_nested_dirs'))
     suite.addTest(RmdirCommandTestCase('test_rmdir_multiple_nested_dirs_and_files'))
-    
+
     suite.addTest(LogHistoryTestCase('test_log_history_ls_no_arg'))
     suite.addTest(LogHistoryTestCase('test_log_history_ls_one_arg'))
     suite.addTest(LogHistoryTestCase('test_log_history_multiple_commands'))
