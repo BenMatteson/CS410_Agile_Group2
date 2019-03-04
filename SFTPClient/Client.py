@@ -217,11 +217,6 @@ class SFTP(object):
                 moved_local_d = os.path.join(tmp_d, os.path.basename(remote_d))
                 logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
                 try:
-                    # setup local vars
-                    tmp_d = tempfile.gettempdir()
-                    local_d = os.path.join(tmp_d, os.path.basename(args[0]))
-                    logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
-
                     # get the contents of the remote directory into the temporary folder
                     if len(self.connection.listdir(args[0])) > 0:
                         # if the source folder is empty, paramiko (or pysftp?) will not actually do a get_r(),
