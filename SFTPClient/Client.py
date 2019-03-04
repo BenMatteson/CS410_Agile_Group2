@@ -34,7 +34,7 @@ class SFTP(object):
         """A decorator function for logging command history each time a command is executed"""
         @wraps(func)
         def logged_func(self, args):
-            if (len(args) > 0):
+            if len(args) > 0:
                 with open(HISTORY_FILE, "a") as f:
                     f.write(func.__name__ + " " + " ".join(str(arg) for arg in args) + "\n")
             else:
@@ -44,7 +44,8 @@ class SFTP(object):
         return logged_func
         
     # region Commands Section
-    def ping(self):
+    def ping(self, _args):
+        """Returns 'pong' if the connection is alive, else 'nothing happened'"""
         return "pong" if self.connection.listdir() else "nothing happened"
 
     def history(self, args):
@@ -67,7 +68,7 @@ class SFTP(object):
         elif len(args) is 1:
             results = self.connection.listdir(args[0])
         else:
-            raise TypeError('ls() takes exactly zero or one arguments (' + str(len(args)) + ' given)')
+            raise TypeError("Usage: ls [<dir_path>]")
         return results
 
     @log_history
@@ -80,7 +81,7 @@ class SFTP(object):
         if len(args) is 2:
             self.connection.chmod(args[0], int(args[1]))
         else:
-            raise TypeError('chmod() takes exactly two arguments (' + str(len(args)) + ' given)')
+            raise TypeError('"Usage: chmod <file/dir_path> <mode>"')
     
     @log_history
     def rmdir(self, args):
@@ -98,7 +99,6 @@ class SFTP(object):
             self.connection.rmdir(args[0])
         else:
             raise TypeError(f"Error: '{args[0]}' is not a directory")
-        
 
     @log_history
     def rm(self, args):
@@ -106,12 +106,12 @@ class SFTP(object):
             Remove file from remote path given by argument. Arg may include path ('/').
         """
         if len(args) != 1:
-            raise TypeError("Usage: rm [filename | path/to/filename]")
+            raise TypeError("Usage: rm <filename | path/to/filename>")
         else:
             if self.connection.isfile(args[0]):
                 self.connection.remove(args[0])
             else:
-                raise TypeError("Usage: rm [filename | path/to/filename]")
+                raise IOError(f"The remote path '{args[0]}' is not a file")
 
     @log_history
     def mkdir(self, args):
@@ -120,12 +120,12 @@ class SFTP(object):
             are created with permissions 775.
         """
         if len(args) != 1:
-            raise TypeError("Usage: mkdir [dirname | path/to/dirname]")
+            raise TypeError("Usage: mkdir <dirname | path/to/dirname>")
         else:
             if args[0].find('/') != -1:
-                self.connection.makedirs(args[0], mode = 775)
+                self.connection.makedirs(args[0], mode=775)
             else:
-                self.connection.mkdir(args[0], mode = 775)
+                self.connection.mkdir(args[0], mode=775)
 
     @log_history
     def get(self, args):
@@ -151,7 +151,30 @@ class SFTP(object):
             raise IOError(f"The remote path '{args[0]}' is not a file")
 
     @log_history
+    def getm(self, args):
+        '''Does download a remote files (more than 1) to the local machine. Files will be downloaded to a "download"
+         folder'''
+        if len(args) < 1:
+            raise TypeError("get() takes 1 or more arguments (" + str(len(args)) + " given)")
+        else:
+            for f in args:
+                if self.connection.isfile(f):
+                    head, tail = ntpath.split(f)
+                    remote_file = tail or ntpath.basename(head)
+                    localpath = os.path.join(DOWNLOADS_DIRECTORY, remote_file)
+                    self.connection.get(f, localpath)
+                else:
+                    raise IOError(f"The remote path '{f}' is not a file")
+
+    @log_history
     def put(self, args):
+        """
+        Send a file to the remote server.
+        Supports local paths for files, but only the file is put.
+        Filename and mtime are preserved.
+        Allows use if '-t' flag to set remote path which will be used for any following files. if any directory
+        does not exist, it is created.
+        """
         target = None
         iter_args = iter(args)
         for arg in iter_args:
@@ -178,6 +201,7 @@ class SFTP(object):
             self.connection.rename(args[0], args[1])
         else:
             raise TypeError('rename() takes exactly two arguments (' + str(len(args)) + ' given)')
+
     def cp(self, args):
         """Copy a remote directory from src to dst
         
@@ -201,12 +225,13 @@ class SFTP(object):
                     # the remote destination doesn't exist - copy the source to that path
                     remote_d = args[1]
                     nest_d = None
+
+                # setup local vars
+                tmp_d = tempfile.gettempdir()
+                local_d = os.path.join(tmp_d, os.path.basename(args[0]))
+                moved_local_d = os.path.join(tmp_d, os.path.basename(remote_d))
+                logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
                 try:
-                    # setup local vars
-                    tmp_d = tempfile.gettempdir()
-                    local_d = os.path.join(tmp_d, os.path.basename(args[0]))
-                    logging.debug('Copying ' + args[0] + ' to ' + remote_d + ' using tmp_d:' + tmp_d)
-                    
                     # get the contents of the remote directory into the temporary folder
                     if len(self.connection.listdir(args[0])) > 0:
                         # if the source folder is empty, paramiko (or pysftp?) will not actually do a get_r(),
@@ -217,31 +242,28 @@ class SFTP(object):
                     else:
                         logging.debug('Creating empty directory at: ' + os.path.join(tmp_d, args[0]) + '...')
                         os.mkdir(os.path.join(tmp_d, args[0]))
-                    
+
                     if nest_d:
                         # if the target directory exists, copy the source into the destination
                         moved_local_d = local_d
                     else:
                         # if the target directory doesn't exist, copy the source directory to that path
-                        moved_local_d = os.path.join(tmp_d, os.path.basename(remote_d))
                         logging.debug('Moving ' + local_d + ' to: ' + moved_local_d + '...')
                         os.rename(local_d, os.path.join(tmp_d, moved_local_d))
-                    
+
                     # get the remote directory path so that it can be passed to put_r
                     cwd = self.connection.pwd
                     logging.debug('Remote working directory: ' + cwd)
                     remote_path = os.path.join(cwd, remote_d)
-                    
+
                     # create the remote directory (if it doesn't exist)
                     if not self.connection.exists(remote_path):
                         logging.debug('Creating remote directory: ' + remote_path + '...')
                         self.connection.mkdir(remote_path)
-                    
+
                     # put the contents ofthe temporary
                     logging.debug('Starting put of src: ' + os.path.join(tmp_d, os.path.basename(remote_d)) + ' dst: ' + remote_path)
                     self.connection.put_r(os.path.join(tmp_d, os.path.basename(remote_d)), remote_path, preserve_mtime=True)
-                except Exception as e:
-                    raise(e)
                 finally:
                     # cleanup the local temporary directories
                     logging.debug('Starting cleanup...')
@@ -252,7 +274,7 @@ class SFTP(object):
             else:
                raise IOError('cp: ' + args[0] + ': No such file or directory')
         else:
-            raise TypeError('cp() takes exactly two arguments (' + str(len(args)) + ' given)')
+            raise TypeError('Usage: cp <remote_source> <remote_destination>')
 
     def cp_r(self, args):
         """Copy a remote directory from src to dst via remote command execution
@@ -274,12 +296,12 @@ class SFTP(object):
             raise TypeError('cp_r() takes exactly two arguments (' + str(len(args)) + ' given)')
     # endregion
 
-    def lsl(self):
+    def lsl(self, _args):
         '''It does list all files and directories in your local machine. It will start with local folder where the
          script exist'''
         return os.listdir(os.getcwd())
 
-    def close(self):
+    def close(self, _args):
         try:
             self.connection.close()
         except Exception:

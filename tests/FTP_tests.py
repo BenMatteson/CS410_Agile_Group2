@@ -7,7 +7,7 @@ import warnings
 import argparse
 import re
 
-# fix for running as script?
+# fix for running as script(if project root not in PYTHONPATH)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from SFTPClient.Client import SFTP
 from SFTPClient.Client import DOWNLOADS_DIRECTORY, HISTORY_FILE
@@ -48,7 +48,6 @@ class SFTPTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        # TODO: should we perform a proper disconnect when doing a tearDown()?
         cls.sftp_client = None
         if os.path.exists(DOWNLOADS_DIRECTORY):
             shutil.rmtree(DOWNLOADS_DIRECTORY)
@@ -100,10 +99,12 @@ class ListCommandTestCase(SFTPTestCase):
         """Test list command with a file that is known to exist"""
         # Test list command with 1 argument (a file that is known to exist) to:
         #  confirm that the test will fail with an exception when listing a file
+        self.sftp_client.connection.open(self.test_file_name, 'w')
         result = None
         with self.assertRaises(FileNotFoundError):
             result = self.sftp_client.ls([self.test_file_name])
         self.assertIsNone(result)
+        self.sftp_client.connection.remove(self.test_file_name)
 
     def test_list_nonexistent(self):
         """Test list command with a file that is non-existent"""
@@ -130,7 +131,6 @@ class ListCommandTestCase(SFTPTestCase):
         #  confirm that it returns a result;
         #  confirm that the result is a list;
         #  confirm that the result contains 'self.test_dir_name'
-        result = None
         result = self.sftp_client.ls([])
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
@@ -142,7 +142,6 @@ class ListCommandTestCase(SFTPTestCase):
         #  confirm that it returns a result;
         #  confirm that the result is a list;
         #  confirm that the result is an empty list
-        result = None
         result = self.sftp_client.ls([self.test_dir_name])
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
@@ -466,7 +465,6 @@ class RmCommandTestCase(SFTPTestCase):
     def test_rm_file_exists(self):
         """Test rm command with file 'filepath' being removed from current directory"""
         # Successful run of test will remove 'filepath' from current working directory
-        # TODO test implementation after the sftp.put command has been implemented
         filepath = self.test_file_name
         dir_files = self.sftp_client.ls([])
         self.assertFalse(filepath in dir_files)
@@ -475,6 +473,10 @@ class RmCommandTestCase(SFTPTestCase):
         dir_files = self.sftp_client.ls([])
         self.assertTrue(filepath in dir_files)
         self.sftp_client.rm([filepath])
+        self.sftp_client.connection.open(filepath, 'w')
+        dir_files = self.sftp_client.ls([])
+        self.assertTrue(filepath in dir_files)
+        self.sftp_client.connection.remove(filepath)
         dir_files = self.sftp_client.ls([])
         self.assertFalse(filepath in dir_files)
         os.remove(filepath)
@@ -524,6 +526,7 @@ class MkdirCommandTestCase(SFTPTestCase):
         self.sftp_client.rmdir([split_path[0]])
         dir_files = self.sftp_client.ls([])
         self.assertNotIn(split_path[0], dir_files)
+
 
 class LogHistoryTestCase(SFTPTestCase):
     """LogHistoryTestCase class provides a unittest class used for testing the SFTP log_history decorator"""
@@ -632,8 +635,8 @@ class HistoryCommandTestCase(SFTPTestCase):
         command_history = self.sftp_client.history([])
         self.assertEqual(command_history, file_text.strip()) 
 
-class RenameCommandTestCase(SFTPTestCase):
 
+class RenameCommandTestCase(SFTPTestCase):
     def test_rename_zero_arg(self):
         """Test rename command with zero arguments"""
         # Successful run of test returns a TypeError
@@ -683,6 +686,7 @@ class RenameCommandTestCase(SFTPTestCase):
         # Successful run of test returns a TypeError
         with self.assertRaises(TypeError):
             self.sftp_client.rename(['abc', 'bcc', 'ccc'])
+
 
 class CopyCommandTestCase(SFTPTestCase):
     """CopyCommandTestCase class provides a unittest class used for testing the SFTP cp command"""
@@ -1038,7 +1042,7 @@ def suite():
     suite.addTest(ChmodCommandTestCase('test_chmod_mode_755'))
 
     suite.addTest(RmCommandTestCase('test_rm_zero_arg'))
-    #suite.addTest(RmCommandTestCase('test_rm_file_exists')) # see TODO
+    suite.addTest(RmCommandTestCase('test_rm_file_exists'))
     suite.addTest(RmCommandTestCase('test_rm_file_nonexistent'))
 
     suite.addTest(MkdirCommandTestCase('test_mkdir_zero_arg'))
