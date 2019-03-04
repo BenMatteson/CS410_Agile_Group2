@@ -202,6 +202,12 @@ class SFTP(object):
         else:
             raise TypeError('rename() takes exactly two arguments (' + str(len(args)) + ' given)')
 
+    def renamel(self, args):
+        if len(args) is 2:
+            os.rename(args[0], args[1])
+        else:
+            raise TypeError('renamel() takes exactly two arguments (' + str(len(args)) + ' given)')
+
     def cp(self, args):
         """Copy a remote directory from src to dst
         

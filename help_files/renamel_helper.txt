@@ -1,0 +1,2 @@
+renamel <old file name> <new file name> @ rename a file or directory on local machine from current working directory
+rename a file or directory on local machine
