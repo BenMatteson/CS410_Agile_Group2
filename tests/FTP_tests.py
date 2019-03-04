@@ -470,12 +470,14 @@ class RmCommandTestCase(SFTPTestCase):
         filepath = self.test_file_name
         dir_files = self.sftp_client.ls([])
         self.assertFalse(filepath in dir_files)
-        self.sftp_client.put(filepath)
+        open(filepath, "w")
+        self.sftp_client.put([filepath])
         dir_files = self.sftp_client.ls([])
         self.assertTrue(filepath in dir_files)
-        self.sftp_client.rm(filepath)
+        self.sftp_client.rm([filepath])
         dir_files = self.sftp_client.ls([])
         self.assertFalse(filepath in dir_files)
+        os.remove(filepath)
 
     def test_rm_file_nonexistent(self):
         """Test rm command against a file that does not exist in the remote path"""
@@ -484,7 +486,7 @@ class RmCommandTestCase(SFTPTestCase):
         filepath = self.test_file_name
         self.assertFalse(filepath in dir_files)
         with self.assertRaises(TypeError):
-            self.sftp_client.rm(filepath)
+            self.sftp_client.rm([filepath])
 
 
 class MkdirCommandTestCase(SFTPTestCase):
