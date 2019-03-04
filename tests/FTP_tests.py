@@ -470,10 +470,6 @@ class RmCommandTestCase(SFTPTestCase):
         dir_files = self.sftp_client.ls([])
         self.assertFalse(filepath in dir_files)
 
-        open(filepath, "w")
-        self.sftp_client.put([filepath])
-        dir_files = self.sftp_client.ls([])
-
         self.sftp_client.connection.open(filepath, 'w')
         dir_files = self.sftp_client.ls([])
         self.assertTrue(filepath in dir_files)
