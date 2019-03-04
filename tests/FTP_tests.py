@@ -41,8 +41,7 @@ class SFTPTestCase(unittest.TestCase):
             cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}
         else:
             # by default, perform public key authentication
-            #cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'private_key_password':cls.private_key_password}
-            cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}
+            cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'private_key_password':cls.private_key_password}
 
         # initialize sftp_client
         cls.sftp_client = SFTP(**cls.sftp_args)
@@ -638,6 +637,66 @@ class HistoryCommandTestCase(SFTPTestCase):
         self.assertEqual(command_history, file_text.strip()) 
 
 
+class RenameLCommandTestCase(SFTPTestCase):
+    def test_renamel_zero_arg(self):
+        """Test renamel command with zero arguments"""
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.renamel([])
+
+    def test_renamel_one_arg(self):
+        """Test renamel command with one arguments"""
+        # renamel command needs exactly two arguments
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.renamel(["abc"])
+
+    def test_renamel_two_arg_no_such_local_file(self):
+        """Test rename command with two arguments, but file is not in remote server"""
+        # Successful run of test returns a IOError
+        # Assume remote server doesn't have a directory named "abc"
+        with self.assertRaises(IOError):
+            self.sftp_client.renamel(["abc", "cba"])
+
+    def test_renamel_two_arg(self):
+        """Test renamel command with two arguments, but file is in remote server"""
+        # Successful run of test will rename directory in current remote directory
+        # Assuming you don't have a rename_test dir in remote server
+        file_name = 'rename_test'
+        rename_file = 'test_rename'
+        dir_files = self.sftp_client.lsl([])
+        self.assertFalse(file_name in dir_files)
+        os.mkdir(file_name)
+        dir_files = self.sftp_client.lsl([])
+        self.assertTrue(file_name in dir_files)
+        self.sftp_client.renamel([file_name, rename_file])
+        dir_files = self.sftp_client.lsl([])
+        self.assertTrue(rename_file in dir_files)
+        os.rmdir(rename_file)
+        dir_files = self.sftp_client.lsl([])
+        self.assertFalse(rename_file in dir_files)
+
+    def test_renamel_nested(self):
+        """Test renamel command with path 'nested/dir/dir_name"""
+        # Successful run of test will rename nested directories in current remote directory
+        full_path = 'rename/dir_name'
+        rename_full_path = 'rename/rename_dir'
+        split_path = rename_full_path.split("/")
+        os.makedirs(full_path)
+        dir_files = self.sftp_client.lsl([])
+        self.assertTrue('rename', dir_files)
+        self.sftp_client.renamel([full_path, rename_full_path])
+        dir_files = os.listdir(split_path[0])
+        self.assertIn(split_path[1], dir_files)
+        os.removedirs(rename_full_path)
+
+    def test_renamel_three_arg(self):
+        """Test renamel command with three arguments"""
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.renamel(['abc', 'bcc', 'ccc'])
+
+
 class RenameCommandTestCase(SFTPTestCase):
     def test_rename_zero_arg(self):
         """Test rename command with zero arguments"""
@@ -1057,6 +1116,13 @@ def suite():
     suite.addTest(RenameCommandTestCase('test_rename_two_arg'))
     suite.addTest(RenameCommandTestCase('test_rename_nested'))
     suite.addTest(RenameCommandTestCase('test_rename_three_arg'))
+
+    suite.addTest(RenameLCommandTestCase('test_renamel_zero_arg'))
+    suite.addTest(RenameLCommandTestCase('test_renamel_one_arg'))
+    suite.addTest(RenameLCommandTestCase('test_renamel_two_arg_no_such_local_file'))
+    suite.addTest(RenameLCommandTestCase('test_renamel_two_arg'))
+    suite.addTest(RenameLCommandTestCase('test_renamel_nested'))
+    suite.addTest(RenameLCommandTestCase('test_renamel_three_arg'))
 
 
     suite.addTest(GetCommandTestCase('test_get_zero_arg'))
