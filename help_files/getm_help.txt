@@ -1,0 +1,1 @@
+get <remotepath> [<remotepath>...] @ Download a remote file(s) to the downloads directory

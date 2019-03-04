@@ -151,6 +151,22 @@ class SFTP(object):
             raise IOError(f"The remote path '{args[0]}' is not a file")
 
     @log_history
+    def getm(self, args):
+        '''Does download a remote files (more than 1) to the local machine. Files will be downloaded to a "download"
+         folder'''
+        if len(args) < 1:
+            raise TypeError("get() takes 1 or more arguments (" + str(len(args)) + " given)")
+        else:
+            for f in args:
+                if self.connection.isfile(f):
+                    head, tail = ntpath.split(f)
+                    remote_file = tail or ntpath.basename(head)
+                    localpath = os.path.join(DOWNLOADS_DIRECTORY, remote_file)
+                    self.connection.get(f, localpath)
+                else:
+                    raise IOError(f"The remote path '{f}' is not a file")
+
+    @log_history
     def put(self, args):
         """
         Send a file to the remote server.
@@ -185,6 +201,7 @@ class SFTP(object):
             self.connection.rename(args[0], args[1])
         else:
             raise TypeError('rename() takes exactly two arguments (' + str(len(args)) + ' given)')
+
     def cp(self, args):
         """Copy a remote directory from src to dst
         
