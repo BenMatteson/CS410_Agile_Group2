@@ -17,4 +17,5 @@ put -t <remotepath> <localpath> [<localpath> ...] @ Put the given file(s) to the
 rename <old> <new> @ rename a file or directory on remote server
 rm <remotefile | path/to/remotefile> @ Remove remote file
 rmdir <remotepath> @ Delete a directory and its contents
+cdl <localpath | path/to/localpath> @ Change local directory
 quit @ Quits the program

@@ -42,7 +42,7 @@ class SFTP(object):
                     f.write(func.__name__ + "\n")
             return func(self, args)
         return logged_func
-        
+
     # region Commands Section
     def ping(self, _args):
         """Returns 'pong' if the connection is alive, else 'nothing happened'"""
@@ -82,7 +82,7 @@ class SFTP(object):
             self.connection.chmod(args[0], int(args[1]))
         else:
             raise TypeError('"Usage: chmod <file/dir_path> <mode>"')
-    
+
     @log_history
     def rmdir(self, args):
         """
@@ -204,11 +204,11 @@ class SFTP(object):
 
     def cp(self, args):
         """Copy a remote directory from src to dst
-        
+
             This version of the cp command performs an extremely inefficient copy, by
             first doing a get of the remote directory into a local temporary directory,
             and then doing a put of that directory back onto the remote server.
-            
+
             This is a pure (S)FTP solution, which means that it does not require the ability to perform
             remote shell execution).
         """
@@ -278,7 +278,7 @@ class SFTP(object):
 
     def cp_r(self, args):
         """Copy a remote directory from src to dst via remote command execution
-        
+
             This is the most efficient way to copy remote directories, but may
             require the ability to perform remote shell commands (i.e., it may
             not be compatible with chrooted SFTP sessions or (S)FTP servers running
@@ -308,6 +308,16 @@ class SFTP(object):
             pass
         exit()
 
+    def cdl(self, args):
+        """ Changes the local directory """
+        if len(args) != 1:
+            raise TypeError("Usage: cdl [path | path/to/dir]")
+        else:
+            try:
+                os.chdir(args[0])
+            except FileNotFoundError:
+                raise TypeError("Usage: cdl [path | path/to/dir]")
+
     def __del__(self):
         try:
             self.connection.close()
@@ -318,7 +328,7 @@ class SFTP(object):
         # Connect, checking hostkey or caching on first connect
         # Based off of this stackoverflow question:
         #     https://stackoverflow.com/questions/53666106/use-paramiko-autoaddpolicy-with-pysftp
-    
+
         # configure pysftp CnOpts
         hostkeys = None
         cnopts = pysftp.CnOpts()  # loads hostkeys from known_hosts.ssh
@@ -326,11 +336,11 @@ class SFTP(object):
             logging.debug('Key for host: ' + self.hostname + ' was not found in known_hosts')
             hostkeys = cnopts.hostkeys
             cnopts.hostkeys = None
-    
+
         args = {'host': self.hostname,
                 'username': self.username,
                 'cnopts': cnopts}
-    
+
         # Determine what type of authentication to use based on parameters provided
         ssh_key = os.path.expanduser('~') + '/.ssh/id_rsa'
         if self.password is not None:
@@ -348,7 +358,7 @@ class SFTP(object):
         else:
             raise ssh_exception.BadAuthenticationType('No supported authentication methods available',
                                                       ['password', 'public_key'])
-    
+
         # connect using the authentication type determined above
         logging.debug('Connecting using arguments: ' + str(args))
         try:
@@ -356,12 +366,12 @@ class SFTP(object):
         except paramiko.SSHException as e:
             logging.critical(e)
             raise
-    
+
         # On first connect, Save the new hostkey to known_hosts
         if hostkeys is not None:
             logging.debug('Appending new hostkey for ' + self.hostname + ' to known_hosts, and writing to disk...')
             hostkeys.add(self.hostname, connection.remote_server_key.get_name(),
                          connection.remote_server_key)
             hostkeys.save(pysftp.helpers.known_hosts())
-    
+
         return connection
