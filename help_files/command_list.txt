@@ -8,8 +8,8 @@ getm <remotepath> [<remotepath>...] @ Download a remote file(s) to the download 
 help @ Show help file (You Are Here)
 help <command> @ Help with <command>
 history @ Show this session's command history
-ls @ List the contents of the current working directory on the remote server
-ls <remotepath> @ List the contents of the requested directory on the remote server
+ls [-l] @ List the contents of the current working directory on the remote server
+ls [-l] <remotepath> @ List the contents of the requested directory on the remote server
 lsl @ List all contents of the current work directory
 mkdir <remotepath | path/to/remotepath> @ Creates remote directory
 put <localpath> [<localpath> ...] @ Put the given file(s) to the remote server
@@ -18,4 +18,5 @@ rename <src> <dst> @ rename a file or directory on remote server
 renamel <src> <dst> @ rename a file or directory on local machine from current working directory
 rm <remotefile | path/to/remotefile> @ Remove remote file
 rmdir <remotepath> @ Delete a directory and its contents
+pwdl @ Prints the local working directory
 quit @ Quits the program
