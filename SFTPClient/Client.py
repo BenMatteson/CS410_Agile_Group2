@@ -66,9 +66,14 @@ class SFTP(object):
         if len(args) is 0:
             results = self.connection.listdir()
         elif len(args) is 1:
-            results = self.connection.listdir(args[0])
+            if args[0] == '-l':
+                results = self.connection.listdir_attr()
+            else:
+                results = self.connection.listdir(args[0])
+        elif len(args) is 2 and args[0] == '-l':
+            results = self.connection.listdir_attr(args[1])
         else:
-            raise TypeError("Usage: ls [<dir_path>]")
+            raise TypeError("Usage: ls [-l] [<dir_path>]")
         return results
 
     @log_history
@@ -99,6 +104,7 @@ class SFTP(object):
             self.connection.rmdir(args[0])
         else:
             raise TypeError(f"Error: '{args[0]}' is not a directory")
+
 
     @log_history
     def rm(self, args):
@@ -196,12 +202,21 @@ class SFTP(object):
             else:
                 raise FileNotFoundError("couldn't find the requested file")
 
+    @log_history
     def rename(self, args):
         if len(args) is 2:
             self.connection.rename(args[0], args[1])
         else:
             raise TypeError('rename() takes exactly two arguments (' + str(len(args)) + ' given)')
 
+    @log_history
+    def renamel(self, args):
+        if len(args) is 2:
+            os.rename(args[0], args[1])
+        else:
+            raise TypeError('renamel() takes exactly two arguments (' + str(len(args)) + ' given)')
+
+    @log_history
     def cp(self, args):
         """Copy a remote directory from src to dst
 
@@ -276,6 +291,7 @@ class SFTP(object):
         else:
             raise TypeError('Usage: cp <remote_source> <remote_destination>')
 
+    @log_history
     def cp_r(self, args):
         """Copy a remote directory from src to dst via remote command execution
 
@@ -294,13 +310,14 @@ class SFTP(object):
                raise IOError('cp_r: ' + args[0] + ': No such file or directory')
         else:
             raise TypeError('cp_r() takes exactly two arguments (' + str(len(args)) + ' given)')
-    # endregion
 
+    @log_history
     def lsl(self, _args):
         '''It does list all files and directories in your local machine. It will start with local folder where the
          script exist'''
         return os.listdir(os.getcwd())
 
+    @log_history
     def close(self, _args):
         try:
             self.connection.close()
@@ -308,6 +325,7 @@ class SFTP(object):
             pass
         exit()
 
+    @log_history
     def cdl(self, args):
         """ Changes the local directory """
         if len(args) != 1:
@@ -317,6 +335,14 @@ class SFTP(object):
                 os.chdir(args[0])
             except FileNotFoundError:
                 raise TypeError("Usage: cdl [path | path/to/dir]")
+    @log_history
+    def pwdl(self, _args):
+        """ Returns the present (local) working directory """
+        if(_args):
+            raise TypeError("Usage: pwd")
+        else:
+            return print(os.getcwd())
+    # endregion
 
     def __del__(self):
         try:

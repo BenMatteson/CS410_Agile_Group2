@@ -90,6 +90,34 @@ class Testls(Test_Client):
         # verify
         self.assertRaises(TypeError, self.myClass.ls, ['car', 'boat'])
 
+    def test_ls3(self):
+        # verify
+        self.assertRaises(TypeError, self.myClass.ls, ['0xdeadbeef', '0xdeadbeef', '0xdeadbeef'])
+
+    def test_ls_l1(self):
+        # actual
+        actual = self.myClass.ls(['-l'])
+        # verify
+        self.myClass.connection.listdir_attr.assert_called_once_with()
+
+    def test_ls_l2(self):
+        # actual
+        actual = self.myClass.ls(['-l', 'testdir'])
+        # verify
+        self.myClass.connection.listdir_attr.assert_called_once_with('testdir')
+
+    def test_ls_nonexistent_dir(self):
+        # setup
+        self.myClass.connection.listdir.side_effect = TypeError("Usage: ls [-l] [<dir_path>]")
+        # verify
+        self.assertRaises(TypeError, self.myClass.ls, ['0xdeadbeef'])
+
+    def test_ls_l_nonexistent_dir(self):
+        # setup
+        self.myClass.connection.listdir_attr.side_effect = TypeError("Usage: ls [-l] [<dir_path>]")
+        # verify
+        self.assertRaises(TypeError, self.myClass.ls, ['-l', '0xdeadbeef'])
+
 
 class Testchmod(Test_Client):
     def test_chmod(self):
