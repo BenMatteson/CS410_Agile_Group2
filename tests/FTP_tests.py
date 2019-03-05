@@ -6,13 +6,15 @@ import unittest
 import warnings
 import argparse
 import re
+from unittest.mock import MagicMock
 
 # fix for running as script(if project root not in PYTHONPATH)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from SFTPClient.Client import SFTP
 from SFTPClient.Client import DOWNLOADS_DIRECTORY, HISTORY_FILE
 from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
-
+from FTP_main import SFTPCLI
+from FTP_main import ExitRequested
 
 class SFTPTestCase(unittest.TestCase):
     """SFTPTestCase provides a base unittest class used for testing the SFTP class
@@ -1118,6 +1120,34 @@ class CdlCommandTestCase(SFTPTestCase):
         self.assertTrue(new_dir not in self.sftp_client.lsl)
 
 
+class SFTPCLITestCase(unittest.TestCase):
+    """SFTPCLITestCase provides unittests for SFTPCLI objects"""
+    def setUp(self):
+        SFTP.connection = MagicMock()
+        SFTP.initiate_connection = MagicMock()
+        self.myClass = SFTPCLI('username', 'hostname', 'password', 'private_key_password')
+        self.myClass.print_help = MagicMock()
+
+    def tearDown(self):
+        pass
+    
+    def test_invalid_command(self):
+        self.assertRaises(ValueError, self.myClass.execute_command, '0xdeadbeef')
+    
+    def test_help(self):
+        self.myClass.execute_command('help')
+        self.myClass.print_help.assert_called_once_with('help_files/command_list.txt')
+    
+    def test_help_command(self):
+        self.myClass.execute_command('help command')
+        self.myClass.print_help.assert_called_once_with('help_files/command_help.txt')
+    
+    def test_quit(self):
+        self.assertRaises(ExitRequested, self.myClass.execute_command, 'quit')
+    
+    def test_command_split_substring_space(self):
+        self.myClass.execute_command('ls "arg containing spaces"')
+        self.myClass.sftp.connection.listdir.assert_called_once_with('arg containing spaces')
 
 
 def suite():
@@ -1217,6 +1247,12 @@ def suite():
     
     suite.addTest(PwdlCommandTestCase('test_pwdl_no_args'))
     suite.addTest(PwdlCommandTestCase('test_pwdl_with_args'))
+
+    suite.addTest(SFTPCLITestCase('test_invalid_command'))
+    suite.addTest(SFTPCLITestCase('test_help'))
+    suite.addTest(SFTPCLITestCase('test_help_command'))
+    suite.addTest(SFTPCLITestCase('test_quit'))
+    suite.addTest(SFTPCLITestCase('test_command_split_substring_space'))
 
     return suite
 
