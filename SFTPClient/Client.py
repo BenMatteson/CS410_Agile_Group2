@@ -185,9 +185,12 @@ class SFTP(object):
             else:
                 raise TypeError("Error: path is not a directory")
 
-    def pwd(self):
+    def pwd(self, _args):
         """ Prints the remote working directory """
-        return self.connection.pwd
+        if len(_args) != 0:
+            raise TypeError("Usage: pwd")
+        else:
+            return self.connection.pwd
 
     def rename(self, args):
         if len(args) is 2:

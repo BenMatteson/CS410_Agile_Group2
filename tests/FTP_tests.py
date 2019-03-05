@@ -11,7 +11,7 @@ import re
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from SFTPClient.Client import SFTP
 from SFTPClient.Client import DOWNLOADS_DIRECTORY, HISTORY_FILE
-from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
+from FTP_auth import PSU_ID, PSU_CECS_PASSWORD#, PRIVATE_KEY_PASSWORD
 
 
 class SFTPTestCase(unittest.TestCase):
@@ -30,7 +30,7 @@ class SFTPTestCase(unittest.TestCase):
         cls.hostname = 'linuxlab.cs.pdx.edu'
         cls.username = PSU_ID
         cls.password = PSU_CECS_PASSWORD
-        cls.private_key_password = PRIVATE_KEY_PASSWORD
+        #cls.private_key_password = PRIVATE_KEY_PASSWORD
         # file name used for testing commands
         cls.test_file_name = 'SFTPTestCase_file.txt'
         # directory name/path used for testing commands
@@ -41,7 +41,7 @@ class SFTPTestCase(unittest.TestCase):
             cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}
         else:
             # by default, perform public key authentication
-            cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'private_key_password':cls.private_key_password}
+            cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}#'private_key_password':cls.private_key_password}
 
         # initialize sftp_client
         cls.sftp_client = SFTP(**cls.sftp_args)
@@ -1019,10 +1019,11 @@ class CdCommandTestCase(SFTPTestCase):
         dir_path = 'dunkelheit'
         self.sftp_client.mkdir([dir_path])
         self.sftp_client.cd([dir_path])
-        cur_path = self.sftp_client.pwd()
+        cur_path = self.sftp_client.pwd([])
         self.assertTrue(dir_path in str(cur_path).split('/'))
         self.sftp_client.cd(['../'])
         self.sftp_client.rmdir([dir_path])
+        self.assertTrue(dir_path not in str(self.sftp_client.pwd([])))
 
 
 
@@ -1035,7 +1036,7 @@ class CdCommandTestCase(SFTPTestCase):
     def test_cd_no_args(self):
         """ Tests cd remote command with no args """
         with self.assertRaises(TypeError):
-            self.sftp_client.cd()
+            self.sftp_client.cd([])
 
     def test_cd_too_many_args(self):
         """ Tests cd remote command with too many args """
@@ -1048,14 +1049,14 @@ class PwdCommandTestCase(SFTPTestCase):
 
     def test_pwd_no_args(self):
         """ Tests pwd command with no args (the correct number of args) """
-        cur_path = self.sftp_client.pwd
+        cur_path = self.sftp_client.pwd([])
         self.assertTrue(cur_path)
 
 
     def test_pwd_with_args(self):
         """ Tests pwd command with args """
         with self.assertRaises(TypeError):
-            self.sftp_client.pwd("Mustard")
+            self.sftp_client.pwd(["Mustard"])
 
 def suite():
     suite = unittest.TestSuite()
