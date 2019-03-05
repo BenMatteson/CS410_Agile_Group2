@@ -7,7 +7,7 @@ import paramiko
 
 from SFTPClient import Client
 
-HELP_COMMAND_SPACING = 35  # Max length(+1) of sample commands in help files
+HELP_COMMAND_SPACING = 50  # Max length(+1) of sample commands in help files
 HELP_FILE_LOCATION = "help_files/"
 
 
@@ -85,8 +85,8 @@ class SFTPCLI(object):
             return getattr(self, parts[0])(parts[1:])
         else:
             try:
-                temp = getattr(self.sftp, parts[0])(parts[1:])
-                return temp
+                command = getattr(self.sftp, parts[0])
+                return command(parts[1:])
             except AttributeError as e:
                 raise ValueError("Command not found, try 'help'") from e
 

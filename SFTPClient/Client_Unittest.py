@@ -56,7 +56,7 @@ class Testping(Test_Client):
         # setup
         self.myClass.connection.listdir.return_value = True
         # actual
-        actual = self.myClass.ping()
+        actual = self.myClass.ping("")
         # verify
         self.myClass.connection.listdir.assert_called_once_with()
         self.assertEqual(actual, "pong")
@@ -65,7 +65,7 @@ class Testping(Test_Client):
         # setup
         self.myClass.connection.listdir.return_value = False
         # actual
-        actual = self.myClass.ping()
+        actual = self.myClass.ping("")
         # verify
         self.myClass.connection.listdir.assert_called_once_with()
         self.assertEqual(actual, "nothing happened")
@@ -90,6 +90,34 @@ class Testls(Test_Client):
         # verify
         self.assertRaises(TypeError, self.myClass.ls, ['car', 'boat'])
 
+    def test_ls3(self):
+        # verify
+        self.assertRaises(TypeError, self.myClass.ls, ['0xdeadbeef', '0xdeadbeef', '0xdeadbeef'])
+
+    def test_ls_l1(self):
+        # actual
+        actual = self.myClass.ls(['-l'])
+        # verify
+        self.myClass.connection.listdir_attr.assert_called_once_with()
+
+    def test_ls_l2(self):
+        # actual
+        actual = self.myClass.ls(['-l', 'testdir'])
+        # verify
+        self.myClass.connection.listdir_attr.assert_called_once_with('testdir')
+
+    def test_ls_nonexistent_dir(self):
+        # setup
+        self.myClass.connection.listdir.side_effect = TypeError("Usage: ls [-l] [<dir_path>]")
+        # verify
+        self.assertRaises(TypeError, self.myClass.ls, ['0xdeadbeef'])
+
+    def test_ls_l_nonexistent_dir(self):
+        # setup
+        self.myClass.connection.listdir_attr.side_effect = TypeError("Usage: ls [-l] [<dir_path>]")
+        # verify
+        self.assertRaises(TypeError, self.myClass.ls, ['-l', '0xdeadbeef'])
+
 
 class Testchmod(Test_Client):
     def test_chmod(self):
@@ -103,6 +131,54 @@ class Testchmod(Test_Client):
         self.assertRaises(TypeError, self.myClass.chmod, ['car', 'boat', 'train'])
 
 
+class Testrm(Test_Client):
+    def test_rm(self):
+        # verify
+        self.assertRaises(TypeError, self.myClass.rm, "Usage: rm [filename | path/to/filename]")
+
+    def test_rm1(self):
+        # setup
+        self.myClass.connection.isdir.return_value = True
+        # actual
+        self.myClass.rm("f")
+        # verify
+        self.myClass.connection.remove.assert_called_once_with("f")
+
+    def test_rm2(self):
+        # setup
+        self.myClass.connection.isdir.return_value = False
+        # actual
+        self.myClass.rm("f")
+        # verify
+        self.assertRaises(TypeError, self.myClass.rm, "Usage: rm [filename | path/to/filename]")
+
+
+class Testmkdir(Test_Client):
+    def test_mkdir(self):
+        # verify
+        self.assertRaises(TypeError, self.myClass.mkdir, "Usage: mkdir [dirname | path/to/dirname]")
+
+    def test_mkdir1(self):
+        # actual
+        self.myClass.mkdir("/")
+        # verify
+        self.myClass.connection.makedirs.assert_called_once_with("/", mode=775)
+
+
+class Testget(Test_Client):
+    def test_get(self):
+        # verify
+        self.assertRaises(TypeError, self.myClass.get, "get() takes 1 or 2 arguments ("" given)")
+
+    def test_get1(self):
+        # setup
+        self.myClass.connection.isfile.return_value = True
+        # actual
+        self.myClass.get("1")
+        # verify
+        self.myClass.connection.get("1", "downloads")
+
+
 @patch("SFTPClient.Client.os.getcwd", autospec=True)
 @patch("SFTPClient.Client.os.listdir", autospec=True)
 class Testlsl(Test_Client):
@@ -111,7 +187,7 @@ class Testlsl(Test_Client):
         mockgetcwd.return_value = "/Users/myCurrentDirectory"
         mocklistdir.side_effect = iter(["file1"])
         # actual
-        self.myClass.lsl()
+        self.myClass.lsl("args")
         # verify
         mocklistdir.assert_called_once_with("/Users/myCurrentDirectory")
 
@@ -139,7 +215,9 @@ class Testput(Test_Client):
         SFTPClient.Client.os.path.isfile.return_value = True
         SFTPClient.Client.os.path.isdir.return_value = False
         self.myClass.put(['-t', 'random_path/to_the', 'local/file.txt'])
-        self.myClass.connection.put.assert_called_once_with('local/file.txt', 'random_path/to_the/file.txt', preserve_mtime=True)
+        self.myClass.connection.put.assert_called_once_with('local/file.txt', 'random_path/to_the/file.txt',
+                                                            preserve_mtime=True)
+
 
 class Testcp(Test_Client):
     def test_cp_one_arg(self):
@@ -196,6 +274,7 @@ class Testcp(Test_Client):
         self.myClass.connection.put_r.assert_called_once_with('/tmp/test.dir', 'test.dir-copy', preserve_mtime=True)
         SFTPClient.Client.shutil.rmtree.assert_called_once_with('/tmp/test.dir')
 
+
 class Testcp_r(Test_Client):
     def test_cp_r_one_arg(self):
         # verify that a TypeError is raised when only 1 argument is passed
@@ -226,11 +305,12 @@ class Testcp_r(Test_Client):
         # verify
         self.myClass.connection.execute.assert_called_once_with('cp -Rp test.dir test.dir-copy')
 
+
 @patch("builtins.exit", autospec=True)
 class TestcloseAndExit(Test_Client):
-    def test_closeAndExit(self, mockexit):
+    def test_close(self, mockexit):
         # actual
-        self.myClass.close()
+        self.myClass.close("args")
         #verify
         self.myClass.connection.close.assert_called_once_with()
         mockexit.assert_called_once_with()

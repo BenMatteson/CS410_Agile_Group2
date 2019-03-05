@@ -7,7 +7,7 @@ import warnings
 import argparse
 import re
 
-# fix for running as script?
+# fix for running as script(if project root not in PYTHONPATH)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from SFTPClient.Client import SFTP
 from SFTPClient.Client import DOWNLOADS_DIRECTORY, HISTORY_FILE
@@ -48,7 +48,6 @@ class SFTPTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        # TODO: should we perform a proper disconnect when doing a tearDown()?
         cls.sftp_client = None
         if os.path.exists(DOWNLOADS_DIRECTORY):
             shutil.rmtree(DOWNLOADS_DIRECTORY)
@@ -100,10 +99,12 @@ class ListCommandTestCase(SFTPTestCase):
         """Test list command with a file that is known to exist"""
         # Test list command with 1 argument (a file that is known to exist) to:
         #  confirm that the test will fail with an exception when listing a file
+        self.sftp_client.connection.open(self.test_file_name, 'w')
         result = None
         with self.assertRaises(FileNotFoundError):
             result = self.sftp_client.ls([self.test_file_name])
         self.assertIsNone(result)
+        self.sftp_client.connection.remove(self.test_file_name)
 
     def test_list_nonexistent(self):
         """Test list command with a file that is non-existent"""
@@ -130,7 +131,6 @@ class ListCommandTestCase(SFTPTestCase):
         #  confirm that it returns a result;
         #  confirm that the result is a list;
         #  confirm that the result contains 'self.test_dir_name'
-        result = None
         result = self.sftp_client.ls([])
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
@@ -142,7 +142,6 @@ class ListCommandTestCase(SFTPTestCase):
         #  confirm that it returns a result;
         #  confirm that the result is a list;
         #  confirm that the result is an empty list
-        result = None
         result = self.sftp_client.ls([self.test_dir_name])
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
@@ -466,14 +465,16 @@ class RmCommandTestCase(SFTPTestCase):
     def test_rm_file_exists(self):
         """Test rm command with file 'filepath' being removed from current directory"""
         # Successful run of test will remove 'filepath' from current working directory
-        # TODO test implementation after the sftp.put command has been implemented
         filepath = self.test_file_name
+
         dir_files = self.sftp_client.ls([])
         self.assertFalse(filepath in dir_files)
-        self.sftp_client.put(filepath)
+
+        self.sftp_client.connection.open(filepath, 'w')
         dir_files = self.sftp_client.ls([])
         self.assertTrue(filepath in dir_files)
-        self.sftp_client.rm(filepath)
+
+        self.sftp_client.connection.remove(filepath)
         dir_files = self.sftp_client.ls([])
         self.assertFalse(filepath in dir_files)
 
@@ -522,6 +523,7 @@ class MkdirCommandTestCase(SFTPTestCase):
         self.sftp_client.rmdir([split_path[0]])
         dir_files = self.sftp_client.ls([])
         self.assertNotIn(split_path[0], dir_files)
+
 
 class LogHistoryTestCase(SFTPTestCase):
     """LogHistoryTestCase class provides a unittest class used for testing the SFTP log_history decorator"""
@@ -630,8 +632,68 @@ class HistoryCommandTestCase(SFTPTestCase):
         command_history = self.sftp_client.history([])
         self.assertEqual(command_history, file_text.strip())
 
-class RenameCommandTestCase(SFTPTestCase):
 
+class RenameLCommandTestCase(SFTPTestCase):
+    def test_renamel_zero_arg(self):
+        """Test renamel command with zero arguments"""
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.renamel([])
+
+    def test_renamel_one_arg(self):
+        """Test renamel command with one arguments"""
+        # renamel command needs exactly two arguments
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.renamel(["abc"])
+
+    def test_renamel_two_arg_no_such_local_file(self):
+        """Test rename command with two arguments, but file is not in remote server"""
+        # Successful run of test returns a IOError
+        # Assume remote server doesn't have a directory named "abc"
+        with self.assertRaises(IOError):
+            self.sftp_client.renamel(["abc", "cba"])
+
+    def test_renamel_two_arg(self):
+        """Test renamel command with two arguments, but file is in remote server"""
+        # Successful run of test will rename directory in current remote directory
+        # Assuming you don't have a rename_test dir in remote server
+        file_name = 'rename_test'
+        rename_file = 'test_rename'
+        dir_files = self.sftp_client.lsl([])
+        self.assertFalse(file_name in dir_files)
+        os.mkdir(file_name)
+        dir_files = self.sftp_client.lsl([])
+        self.assertTrue(file_name in dir_files)
+        self.sftp_client.renamel([file_name, rename_file])
+        dir_files = self.sftp_client.lsl([])
+        self.assertTrue(rename_file in dir_files)
+        os.rmdir(rename_file)
+        dir_files = self.sftp_client.lsl([])
+        self.assertFalse(rename_file in dir_files)
+
+    def test_renamel_nested(self):
+        """Test renamel command with path 'nested/dir/dir_name"""
+        # Successful run of test will rename nested directories in current remote directory
+        full_path = 'rename/dir_name'
+        rename_full_path = 'rename/rename_dir'
+        split_path = rename_full_path.split("/")
+        os.makedirs(full_path)
+        dir_files = self.sftp_client.lsl([])
+        self.assertTrue('rename', dir_files)
+        self.sftp_client.renamel([full_path, rename_full_path])
+        dir_files = os.listdir(split_path[0])
+        self.assertIn(split_path[1], dir_files)
+        os.removedirs(rename_full_path)
+
+    def test_renamel_three_arg(self):
+        """Test renamel command with three arguments"""
+        # Successful run of test returns a TypeError
+        with self.assertRaises(TypeError):
+            self.sftp_client.renamel(['abc', 'bcc', 'ccc'])
+
+
+class RenameCommandTestCase(SFTPTestCase):
     def test_rename_zero_arg(self):
         """Test rename command with zero arguments"""
         # Successful run of test returns a TypeError
@@ -681,6 +743,7 @@ class RenameCommandTestCase(SFTPTestCase):
         # Successful run of test returns a TypeError
         with self.assertRaises(TypeError):
             self.sftp_client.rename(['abc', 'bcc', 'ccc'])
+
 
 class CopyCommandTestCase(SFTPTestCase):
     """CopyCommandTestCase class provides a unittest class used for testing the SFTP cp command"""
@@ -1010,6 +1073,52 @@ class PutCommandTestCase(SFTPTestCase):
         self.sftp_client.rmdir([test_folder])
         os.remove(test_file)
 
+class PwdlCommandTestCase(SFTPTestCase):
+    """ Provides unittests for pwd local command """
+
+    def test_pwdl_no_args(self):
+        """ Tests pwdl command without args """
+        path = self.sftp_client.pwdl
+        self.assertIsNotNone(path)
+
+    def test_pwdl_with_args(self):
+        """ Tests pwdl command with args """
+        with self.assertRaises(TypeError):
+            self.sftp_client.pwdl("Fried-Chicken-Sundae")
+
+
+class CdlCommandTestCase(SFTPTestCase):
+    """ Provides unittests for the change (local) directory command """
+    def test_no_args(self):
+        """ Tests cdl with no arguments """
+        with self.assertRaises(TypeError):
+            self.sftp_client.cdl([])
+
+    def test_multi_args(self):
+        """ Tests cdl with multiple args """
+        with self.assertRaises(TypeError):
+            self.sftp_client.cdl(["sa sd"])
+
+    def test_invalid_path(self):
+        """ Tests cdl with invalid path """
+        dir = 'why_would_you_have_a_folder_named_this'
+        with self.assertRaises(TypeError):
+            self.sftp_client.cdl([dir])
+
+
+    def test_valid_path(self):
+        """ Tests cdl with a valid path """
+        new_dir = "aksughafsiug"
+        os.mkdir(new_dir)
+        self.sftp_client.cdl([new_dir])
+        cur_path = self.sftp_client.pwdl
+        self.assertTrue(new_dir in str(cur_path).split('/'))
+        self.sftp_client.cdl(['../'])
+        os.removedirs(new_dir)
+        self.assertTrue(new_dir not in self.sftp_client.lsl)
+
+
+
 
 class CdCommandTestCase(SFTPTestCase):
     """ CdCommandTestCase class provides unittests for the cd (remote) command"""
@@ -1083,7 +1192,7 @@ def suite():
     suite.addTest(ChmodCommandTestCase('test_chmod_mode_755'))
 
     suite.addTest(RmCommandTestCase('test_rm_zero_arg'))
-    #suite.addTest(RmCommandTestCase('test_rm_file_exists')) # see TODO
+    suite.addTest(RmCommandTestCase('test_rm_file_exists'))
     suite.addTest(RmCommandTestCase('test_rm_file_nonexistent'))
 
     suite.addTest(MkdirCommandTestCase('test_mkdir_zero_arg'))
@@ -1096,6 +1205,13 @@ def suite():
     suite.addTest(RenameCommandTestCase('test_rename_two_arg'))
     suite.addTest(RenameCommandTestCase('test_rename_nested'))
     suite.addTest(RenameCommandTestCase('test_rename_three_arg'))
+
+    suite.addTest(RenameLCommandTestCase('test_renamel_zero_arg'))
+    suite.addTest(RenameLCommandTestCase('test_renamel_one_arg'))
+    suite.addTest(RenameLCommandTestCase('test_renamel_two_arg_no_such_local_file'))
+    suite.addTest(RenameLCommandTestCase('test_renamel_two_arg'))
+    suite.addTest(RenameLCommandTestCase('test_renamel_nested'))
+    suite.addTest(RenameLCommandTestCase('test_renamel_three_arg'))
 
 
     suite.addTest(GetCommandTestCase('test_get_zero_arg'))
@@ -1147,6 +1263,14 @@ def suite():
 
     suite.addTest(PwdCommandTestCase('test_pwd_no_args'))
     suite.addTest(PwdCommandTestCase('test_pwd_with_args'))
+
+    suite.addTest(CdlCommandTestCase('test_no_args'))
+    suite.addTest(CdlCommandTestCase('test_multi_args'))
+    suite.addTest(CdlCommandTestCase('test_invalid_path'))
+    suite.addTest(CdlCommandTestCase('test_valid_path'))
+    
+    suite.addTest(PwdlCommandTestCase('test_pwdl_no_args'))
+    suite.addTest(PwdlCommandTestCase('test_pwdl_with_args'))
 
     return suite
 
