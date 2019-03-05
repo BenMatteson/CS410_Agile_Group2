@@ -1120,6 +1120,53 @@ class CdlCommandTestCase(SFTPTestCase):
 
 
 
+class CdCommandTestCase(SFTPTestCase):
+    """ CdCommandTestCase class provides unittests for the cd (remote) command"""
+
+    def test_cd_valid_path(self):
+        """ Tests cd remote command against a valid directory path """
+        dir_path = 'dunkelheit'
+        self.sftp_client.mkdir([dir_path])
+        self.sftp_client.cd([dir_path])
+        cur_path = self.sftp_client.pwd([])
+        self.assertTrue(dir_path in str(cur_path).split('/'))
+        self.sftp_client.cd(['../'])
+        self.sftp_client.rmdir([dir_path])
+        self.assertTrue(dir_path not in str(self.sftp_client.pwd([])))
+
+
+
+    def test_cd_invalid_path(self):
+        """ Tests cd remote command against an inavlid path """
+        with self.assertRaises(TypeError):
+            self.sftp_client.cd('afhsadfha')
+
+
+    def test_cd_no_args(self):
+        """ Tests cd remote command with no args """
+        with self.assertRaises(TypeError):
+            self.sftp_client.cd([])
+
+    def test_cd_too_many_args(self):
+        """ Tests cd remote command with too many args """
+        with self.assertRaises(TypeError):
+            self.sftp_client.cd("RIP Earth")
+
+
+class PwdCommandTestCase(SFTPTestCase):
+    """ PwdCommandTestCase class provides unittests for the pwd (remote) command """
+
+    def test_pwd_no_args(self):
+        """ Tests pwd command with no args (the correct number of args) """
+        cur_path = self.sftp_client.pwd([])
+        self.assertTrue(cur_path)
+
+
+    def test_pwd_with_args(self):
+        """ Tests pwd command with args """
+        with self.assertRaises(TypeError):
+            self.sftp_client.pwd(["Mustard"])
+
 def suite():
     suite = unittest.TestSuite()
 
@@ -1209,6 +1256,13 @@ def suite():
     suite.addTest(HistoryCommandTestCase('test_history_ls_no_arg'))
     suite.addTest(HistoryCommandTestCase('test_history_ls_one_arg'))
     suite.addTest(HistoryCommandTestCase('test_history_multiple_commands'))
+    suite.addTest(CdCommandTestCase('test_cd_valid_path'))
+    suite.addTest(CdCommandTestCase('test_cd_invalid_path'))
+    suite.addTest(CdCommandTestCase('test_cd_no_args'))
+    suite.addTest(CdCommandTestCase('test_cd_too_many_args'))
+
+    suite.addTest(PwdCommandTestCase('test_pwd_no_args'))
+    suite.addTest(PwdCommandTestCase('test_pwd_with_args'))
 
     suite.addTest(CdlCommandTestCase('test_no_args'))
     suite.addTest(CdlCommandTestCase('test_multi_args'))

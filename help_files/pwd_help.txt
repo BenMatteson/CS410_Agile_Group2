@@ -1,0 +1,1 @@
+pwd @ Print the remote working path. Takes no arguments

@@ -1,0 +1,2 @@
+cd @ Change remote directory
+cd <path | path/to/dir> @ Change remote directory

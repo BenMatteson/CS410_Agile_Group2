@@ -106,6 +106,7 @@ class SFTP(object):
             raise TypeError(f"Error: '{args[0]}' is not a directory")
 
 
+
     @log_history
     def rm(self, args):
         """
@@ -201,6 +202,24 @@ class SFTP(object):
 
             else:
                 raise FileNotFoundError("couldn't find the requested file")
+
+    @log_history
+    def cd(self, args):
+        """ Changes the remote directory to the specified path """
+        if len(args) != 1:
+            raise TypeError("Usage: cd [path | path/to/dirname]")
+        else:
+            if self.connection.isdir(args[0]):
+                self.connection.chdir(args[0])
+            else:
+                raise TypeError("Error: path is not a directory")
+    @log_history
+    def pwd(self, _args):
+        """ Prints the remote working directory """
+        if len(_args) != 0:
+            raise TypeError("Usage: pwd")
+        else:
+            return self.connection.pwd
 
     @log_history
     def rename(self, args):
