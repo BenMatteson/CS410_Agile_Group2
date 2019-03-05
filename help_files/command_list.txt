@@ -14,7 +14,8 @@ lsl @ List all contents of the current work directory
 mkdir <remotepath | path/to/remotepath> @ Creates remote directory
 put <localpath> [<localpath> ...] @ Put the given file(s) to the remote server
 put -t <remotepath> <localpath> [<localpath> ...] @ Put the given file(s) to the target directory on the remote server
-rename <old> <new> @ rename a file or directory on remote server
+rename <src> <dst> @ rename a file or directory on remote server
+renamel <src> <dst> @ rename a file or directory on local machine from current working directory
 rm <remotefile | path/to/remotefile> @ Remove remote file
 rmdir <remotepath> @ Delete a directory and its contents
 pwdl @ Prints the local working directory
