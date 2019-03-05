@@ -1105,19 +1105,16 @@ class CdlCommandTestCase(SFTPTestCase):
         with self.assertRaises(TypeError):
             self.sftp_client.cdl([dir])
 
-
     def test_valid_path(self):
         """ Tests cdl with a valid path """
         new_dir = "aksughafsiug"
         os.mkdir(new_dir)
         self.sftp_client.cdl([new_dir])
         cur_path = self.sftp_client.pwdl([])
-        self.assertTrue(new_dir in str(cur_path).split('/'))
+        self.assertTrue(new_dir in os.path.split(cur_path))
         self.sftp_client.cdl(['../'])
         shutil.rmtree(new_dir)
         self.assertTrue(new_dir not in self.sftp_client.lsl([]))
-
-
 
 
 class CdCommandTestCase(SFTPTestCase):
@@ -1129,7 +1126,7 @@ class CdCommandTestCase(SFTPTestCase):
         self.sftp_client.mkdir([dir_path])
         self.sftp_client.cd([dir_path])
         cur_path = self.sftp_client.pwd([])
-        self.assertTrue(dir_path in str(cur_path).split('/'))
+        self.assertTrue(dir_path in os.path.split(cur_path))
         self.sftp_client.cd(['../'])
         self.sftp_client.rmdir([dir_path])
         self.assertTrue(dir_path not in str(self.sftp_client.pwd([])))

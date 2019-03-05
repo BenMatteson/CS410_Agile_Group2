@@ -354,6 +354,7 @@ class SFTP(object):
                 os.chdir(args[0])
             except FileNotFoundError:
                 raise TypeError("Usage: cdl [path | path/to/dir]")
+
     @log_history
     def pwdl(self, _args):
         """ Returns the present (local) working directory """
