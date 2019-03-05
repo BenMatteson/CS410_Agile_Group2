@@ -11,7 +11,7 @@ import re
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from SFTPClient.Client import SFTP
 from SFTPClient.Client import DOWNLOADS_DIRECTORY, HISTORY_FILE
-from FTP_auth import PSU_ID, PSU_CECS_PASSWORD, PRIVATE_KEY_PASSWORD
+from FTP_auth import PSU_ID, PSU_CECS_PASSWORD#, PRIVATE_KEY_PASSWORD
 
 
 class SFTPTestCase(unittest.TestCase):
@@ -30,7 +30,7 @@ class SFTPTestCase(unittest.TestCase):
         cls.hostname = 'linuxlab.cs.pdx.edu'
         cls.username = PSU_ID
         cls.password = PSU_CECS_PASSWORD
-        cls.private_key_password = PRIVATE_KEY_PASSWORD
+        #cls.private_key_password = PRIVATE_KEY_PASSWORD
         # file name used for testing commands
         cls.test_file_name = 'SFTPTestCase_file.txt'
         # directory name/path used for testing commands
@@ -41,7 +41,7 @@ class SFTPTestCase(unittest.TestCase):
             cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}
         else:
             # by default, perform public key authentication
-            cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'private_key_password':cls.private_key_password}
+            cls.sftp_args = {'hostname':cls.hostname, 'username':cls.username, 'password':cls.password}#'private_key_password':cls.private_key_password}
 
         # initialize sftp_client
         cls.sftp_client = SFTP(**cls.sftp_args)
@@ -1111,11 +1111,11 @@ class CdlCommandTestCase(SFTPTestCase):
         new_dir = "aksughafsiug"
         os.mkdir(new_dir)
         self.sftp_client.cdl([new_dir])
-        cur_path = self.sftp_client.pwdl
+        cur_path = self.sftp_client.pwdl([])
         self.assertTrue(new_dir in str(cur_path).split('/'))
         self.sftp_client.cdl(['../'])
-        os.removedirs(new_dir)
-        self.assertTrue(new_dir not in self.sftp_client.lsl)
+        shutil.rmtree(new_dir)
+        self.assertTrue(new_dir not in self.sftp_client.lsl([]))
 
 
 
@@ -1268,7 +1268,7 @@ def suite():
     suite.addTest(CdlCommandTestCase('test_multi_args'))
     suite.addTest(CdlCommandTestCase('test_invalid_path'))
     suite.addTest(CdlCommandTestCase('test_valid_path'))
-    
+
     suite.addTest(PwdlCommandTestCase('test_pwdl_no_args'))
     suite.addTest(PwdlCommandTestCase('test_pwdl_with_args'))
 
