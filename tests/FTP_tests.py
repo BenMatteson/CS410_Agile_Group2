@@ -1149,6 +1149,12 @@ class SFTPCLITestCase(unittest.TestCase):
         self.myClass.execute_command('ls "arg containing spaces"')
         self.myClass.sftp.connection.listdir.assert_called_once_with('arg containing spaces')
 
+    def test_command_split_trailing_space(self):
+        self.myClass.execute_command('ls "a-trailing-space----> "')
+        self.myClass.sftp.connection.listdir.assert_called_once_with('a-trailing-space----> ')
+
+    def test_execute_command_empty(self):
+        self.assertRaises(IndexError, self.myClass.execute_command, '')
 
 def suite():
     suite = unittest.TestSuite()
@@ -1253,6 +1259,8 @@ def suite():
     suite.addTest(SFTPCLITestCase('test_help_command'))
     suite.addTest(SFTPCLITestCase('test_quit'))
     suite.addTest(SFTPCLITestCase('test_command_split_substring_space'))
+    suite.addTest(SFTPCLITestCase('test_command_split_trailing_space'))
+    suite.addTest(SFTPCLITestCase('test_execute_command_empty'))
 
     return suite
 

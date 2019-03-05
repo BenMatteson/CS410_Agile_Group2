@@ -45,12 +45,13 @@ def main():
         try:
             command = input('> ')
             # execute command, handle result accordingly.
-            result = cli.execute_command(command)
-            if isinstance(result, list):
-                for item in result:
-                    print(item)
-            elif isinstance(result, str):
-                print(result)
+            if len(command) > 0:
+                result = cli.execute_command(command)
+                if isinstance(result, list):
+                    for item in result:
+                        print(item)
+                elif isinstance(result, str):
+                    print(result)
         except (ValueError, FileNotFoundError, TypeError, PermissionError, IOError) as e:
             print(e)
             continue
