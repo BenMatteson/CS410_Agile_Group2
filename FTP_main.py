@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import argparse
 import logging
 import warnings
@@ -8,7 +9,7 @@ import paramiko
 from SFTPClient import Client
 
 HELP_COMMAND_SPACING = 50  # Max length(+1) of sample commands in help files
-HELP_FILE_LOCATION = "help_files/"
+HELP_FILE_LOCATION = "help_files"
 
 
 class ExitRequested(Exception):
@@ -93,9 +94,9 @@ class SFTPCLI(object):
     def help(self, args):
         """Show command list, or help file for requested command"""
         if len(args) is 0:
-            self.print_help(HELP_FILE_LOCATION + "command_list.txt")
+            self.print_help(os.path.join(HELP_FILE_LOCATION,  "command_list.txt"))
         else:
-            self.print_help(HELP_FILE_LOCATION + args[0] + "_help.txt")
+            self.print_help(os.path.join(HELP_FILE_LOCATION, args[0] + "_help.txt"))
 
     @staticmethod
     def print_help(file):
