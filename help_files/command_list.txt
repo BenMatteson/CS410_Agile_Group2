@@ -18,12 +18,9 @@ rename <src> <dst> @ rename a file or directory on remote server
 renamel <src> <dst> @ rename a file or directory on local machine from current working directory
 rm <remotefile | path/to/remotefile> @ Remove remote file
 rmdir <remotepath> @ Delete a directory and its contents
-<<<<<<< HEAD
 cd @ Change remote directory
 cd <path | path/to/dir> @ Change remote directory
 pwd @ Print the remote working path. Takes no arguments
-=======
 cdl <localpath | path/to/localpath> @ Change local directory
 pwdl @ Prints the local working directory
->>>>>>> e288568791a782565035eb1b8f52bc47dcd3c19e
 quit @ Quits the program
