@@ -360,7 +360,7 @@ class SFTP(object):
         if(_args):
             raise TypeError("Usage: pwd")
         else:
-            return print(os.getcwd())
+            return os.getcwd()
     # endregion
 
     def __del__(self):

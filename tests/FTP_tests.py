@@ -1111,11 +1111,11 @@ class CdlCommandTestCase(SFTPTestCase):
         new_dir = "aksughafsiug"
         os.mkdir(new_dir)
         self.sftp_client.cdl([new_dir])
-        cur_path = self.sftp_client.pwdl
+        cur_path = self.sftp_client.pwdl([])
         self.assertTrue(new_dir in str(cur_path).split('/'))
         self.sftp_client.cdl(['../'])
-        os.removedirs(new_dir)
-        self.assertTrue(new_dir not in self.sftp_client.lsl)
+        shutil.rmtree(new_dir)
+        self.assertTrue(new_dir not in self.sftp_client.lsl([]))
 
 
 
@@ -1268,7 +1268,7 @@ def suite():
     suite.addTest(CdlCommandTestCase('test_multi_args'))
     suite.addTest(CdlCommandTestCase('test_invalid_path'))
     suite.addTest(CdlCommandTestCase('test_valid_path'))
-    
+
     suite.addTest(PwdlCommandTestCase('test_pwdl_no_args'))
     suite.addTest(PwdlCommandTestCase('test_pwdl_with_args'))
 
