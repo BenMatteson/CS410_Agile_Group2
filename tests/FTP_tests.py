@@ -1087,6 +1087,39 @@ class PwdlCommandTestCase(SFTPTestCase):
             self.sftp_client.pwdl("Fried-Chicken-Sundae")
 
 
+class CdlCommandTestCase(SFTPTestCase):
+    """ Provides unittests for the change (local) directory command """
+    def test_no_args(self):
+        """ Tests cdl with no arguments """
+        with self.assertRaises(TypeError):
+            self.sftp_client.cdl([])
+
+    def test_multi_args(self):
+        """ Tests cdl with multiple args """
+        with self.assertRaises(TypeError):
+            self.sftp_client.cdl(["sa sd"])
+
+    def test_invalid_path(self):
+        """ Tests cdl with invalid path """
+        dir = 'why_would_you_have_a_folder_named_this'
+        with self.assertRaises(TypeError):
+            self.sftp_client.cdl([dir])
+
+
+    def test_valid_path(self):
+        """ Tests cdl with a valid path """
+        new_dir = "aksughafsiug"
+        os.mkdir(new_dir)
+        self.sftp_client.cdl([new_dir])
+        cur_path = self.sftp_client.pwdl
+        self.assertTrue(new_dir in str(cur_path).split('/'))
+        self.sftp_client.cdl(['../'])
+        os.removedirs(new_dir)
+        self.assertTrue(new_dir not in self.sftp_client.lsl)
+
+
+
+
 def suite():
     suite = unittest.TestSuite()
 
@@ -1177,6 +1210,11 @@ def suite():
     suite.addTest(HistoryCommandTestCase('test_history_ls_one_arg'))
     suite.addTest(HistoryCommandTestCase('test_history_multiple_commands'))
 
+    suite.addTest(CdlCommandTestCase('test_no_args'))
+    suite.addTest(CdlCommandTestCase('test_multi_args'))
+    suite.addTest(CdlCommandTestCase('test_invalid_path'))
+    suite.addTest(CdlCommandTestCase('test_valid_path'))
+    
     suite.addTest(PwdlCommandTestCase('test_pwdl_no_args'))
     suite.addTest(PwdlCommandTestCase('test_pwdl_with_args'))
 
